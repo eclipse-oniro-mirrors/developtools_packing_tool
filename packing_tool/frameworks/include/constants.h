@@ -29,6 +29,9 @@ const std::string CMD_UNPACK = "unpack";
 const std::string MODE_HAP = "hap";
 const std::string MODE_HSP = "hsp";
 const std::string MODE_APP = "app";
+const std::string MODE_INSTALLER = "installer";
+const std::string PARAM_CONTENTS = "contents";
+const std::string PARAM_MANIFEST = "manifest";
 const std::string MODE_HQF = "hqf";
 const std::string MODE_APPQF = "appqf";
 const std::string MODE_MULTIAPP = "multiApp";
@@ -267,6 +270,8 @@ const struct option LONG_OPTIONS[] = {
     {PARAM_BUILD_VERSION.c_str(), required_argument, nullptr, 64},
     {PARAM_SKILLS_PATH.c_str(), required_argument, nullptr, 65},
     {PARAM_DEDUPLICATE_SO.c_str(), required_argument, nullptr, 66},
+    {PARAM_CONTENTS.c_str(), required_argument, nullptr, 67},
+    {PARAM_MANIFEST.c_str(), required_argument, nullptr, 68},
     {nullptr, 0, nullptr, 0},
 };
 constexpr const int32_t OPTIONS_SIZE = sizeof(LONG_OPTIONS) / sizeof(LONG_OPTIONS[0]);

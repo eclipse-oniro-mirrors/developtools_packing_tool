@@ -27,6 +27,8 @@
 #include "hap_packager.h"
 #include "hqf_packager.h"
 #include "hsp_packager.h"
+#include "installer_packager.h"
+#include "error/packing_tool_err_msg.h"
 #include "log.h"
 #include "multiapp_packager.h"
 #include "packager.h"
@@ -150,6 +152,9 @@ int32_t ShellCommand::RunAsUnpackCommand()
 std::unique_ptr<Packager> ShellCommand::getPackager()
 {
     std::string mode = parameterMap_[Constants::PARAM_MODE];
+    if (mode == Constants::MODE_INSTALLER) {
+        return std::make_unique<InstallerPackager>(parameterMap_, resultReceiver_);
+    }
     if (mode == Constants::MODE_HAP) {
         std::unique_ptr<Packager> packager =
             std::make_unique<HapPackager>(parameterMap_, resultReceiver_);

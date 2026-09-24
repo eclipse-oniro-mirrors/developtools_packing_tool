@@ -34,7 +34,10 @@ const std::string TOOL_NAME = "ohos_packing_tool";
 const std::string HELP_MSG = "usage: ohos_packing_tool <command> <options>\n"
                              "These are common ohos_packing_tool commands list:\n"
                              "  help    list available commands\n"
-                             "  pack    pack a bundle  with options\n";
+                             "  pack    pack a bundle  with options\n"
+                             "  pack --mode installer --contents <directory> --out-path <file.app>\n"
+                             "       [--manifest <manifest.json>] [--force true|false]\n"
+                             "  installer: Stage 2in1 modules; lowercase .hap/.hsp and .app; force defaults false.\n";
 
 }  // namespace
 

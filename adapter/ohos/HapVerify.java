@@ -327,9 +327,25 @@ class HapVerify {
     /**
      * check whether the app fields in the hap are the same.
      *
-     * @param hapVerifyInfos is the collection of hap infos
+     * @param modules is the collection of hap infos
      * @return true if app fields is same
      */
+    static boolean checkInstallerAppFields(List<HapVerifyInfo> modules) throws BundleException {
+        if (modules.isEmpty()) {
+            return false;
+        }
+        HapVerifyInfo first = modules.get(0);
+        for (HapVerifyInfo module : modules) {
+            if (!Objects.equals(first.getVersion().versionName, module.getVersion().versionName)) {
+                LOG.error(PackingToolErrMsg.APP_FIELDS_DIFFERENT_ERROR.toString(
+                        "Application identity field differs: versionName (" + first.getModuleName()
+                        + ", " + module.getModuleName() + ")", "Ensure application identity fields match."));
+                return false;
+            }
+        }
+        return checkHapIsValid(modules);
+    }
+
     private static boolean checkAppFieldsIsSame(List<HapVerifyInfo> hapVerifyInfos) {
         if (hapVerifyInfos == null || hapVerifyInfos.isEmpty()) {
             LOG.error(PackingToolErrMsg.CHECK_HAP_VERIFY_INFO_LIST_EMPTY.toString("Hap verify infos is empty."));
@@ -582,7 +598,7 @@ class HapVerify {
      * @throws BundleException Throws this exception if the json is not standard.
      */
     private static boolean checkModuleNameIsValid(List<HapVerifyInfo> hapVerifyInfos) throws BundleException {
-        for (int i = 0; i < hapVerifyInfos.size() - 1; ++i) {
+        for (int i = 0; i < hapVerifyInfos.size(); ++i) {
             if (hapVerifyInfos.get(i).getModuleName().isEmpty()) {
                 String cause = "The module name in the HAP infos is empty.";
                 String solution = "Ensure that each HAP file contains a valid module name field before verification.";

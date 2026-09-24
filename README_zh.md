@@ -273,6 +273,42 @@ java -jar app_packing_tool.jar --mode fastApp --hap-path <option> --hsp-path <op
 
 在API version 16之前，App打包时要求所有HAP/HSP的minCompatibleVersionCode、targetAPIVersion一致。
 在API version 20之前，App打包时要求所有HAP/HSP的minAPIVersion一致。
+### 1.11 installer模式打包指令
+
+Java 与 C++ 均支持将多个 Stage 应用打成 installer APP：
+
+```text
+java -jar app_packing_tool.jar --mode installer --contents <directory> --out-path <output.app> [--manifest <manifest.json>] [--force true|false]
+ohos_packing_tool pack --mode installer --contents <directory> --out-path <output.app> [--manifest <manifest.json>] [--force true|false]
+```
+
+| 参数 | 要求 |
+| --- | --- |
+| --contents | 必选目录；直接子目录分别代表应用，每个应用目录只能包含非空的 `.hap` / `.hsp` 文件集合。 |
+| --manifest | 可选的严格 UTF-8 JSON 对象；省略时自动生成。只适用于 installer 模式。 |
+| --out-path | 必选，文件名必须以小写 `.app` 结尾，且位于 contents 外。 |
+| --force | 默认为 false；true 允许在新包完整写出并关闭后替换普通输出文件。 |
+
+参数沿用已有解析架构，不为 installer 额外检查参数白名单、重复参数或参数对形式；重复参数按原解析器后值覆盖。必填项、路径及包内容仍在打包校验阶段检查。输入扩展名区分大小写，`.HAP` / `.HSP` 均无效。空 contents、空应用目录、一级杂项、应用目录内子目录、符号链接及目录联接均报错。输出不能是目录、链接、输入模块或 manifest 的同文件别名。
+
+各模块的 `module.deviceTypes` 必须包含 `2in1`，`app.bundleType` 必须为 `app`（缺省按 app）。同一应用目录保留 versionName 一致性检查，并复用普通 APP 的包内配置和跨模块校验：应用字段、module/package 名称冲突、entry 冲突、依赖、overlay 目标、compileSdkType、proxyData URI 和 continueType。缺少 entry、Ability 重名、assetAccessGroups 不一致和本应用依赖模块缺失沿用已有日志语义；共享模块 apiReleaseType 不一致只告警，compileSdkVersion 不要求一致，vendor 不作一致性检查。允许纯 HAP、纯 HSP，各应用目录独立校验；同名模块沿用已有 distroFilter 互斥规则。不接入传统 APP 的 pack.info 替换及压缩后原子化服务大小校验。
+
+外部 manifest 的 apps 必须与应用目录一一对应，各元素必须包含非空字符串 bundleName、versionName、path，以及非负 int32 整数 versionCode、minAPIVersion。path 精确为 `Contents/<应用目录名>`；前三个身份字段与模块一致，minAPIVersion 不低于该应用任一模块。有且只有一个元素配置布尔值 coreApp=true。外部顶层 version、distributionType 不作业务校验，未知字段、原始字节和 apps 顺序全部保留；拒绝注释、尾逗号、重复键及尾随垃圾。
+
+自动清单仅生成顶层 version=1、distributionType="developerID"、apps；每个应用写上述五项，minAPIVersion 取模块最大值。应用按目录名的 Unicode 码点顺序排序，仅第一项额外写 coreApp=true，其余项不生成 coreApp 字段。
+
+输出使用 ZIP DEFLATE，所有条目（manifest.json、HAP/HSP）压缩级别固定为 5，不受模块 debug 值影响；通用解析器接收的 `--compress-level` 不改变 installer 的固定级别。必要时使用 ZIP64，结构如下；解压后的 HAP/HSP 原始字节保持不变：
+
+```text
+output.app
+├── manifest.json
+└── Contents/
+    ├── app1/entry.hap
+    └── app2/library.hsp
+```
+
+installer APP 不包含传统 APP 的 pack.info，也不据扩展名自动兼容现有拆包/扫描接口。安装器对该容器及 ZIP64 的支持需另行联调。打包失败保留输入和旧输出，仅清理本次创建的临时产物；不支持打包期间并发替换输入。
+
 ## 2. 拆包指令说明
 
 ### 2.1 hap包模式拆包指令

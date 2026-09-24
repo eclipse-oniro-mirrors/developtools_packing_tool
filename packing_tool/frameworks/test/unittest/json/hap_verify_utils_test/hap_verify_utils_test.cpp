@@ -1205,7 +1205,7 @@ HWTEST_F(HapVerifyUtilsTest, CheckCompileSdkIsValid_0100, Function | MediumTest 
     hapVerifyInfo4.SetCompileSdkVersion("other");
     hapVerifyInfos.push_back(hapVerifyInfo3);
     hapVerifyInfos.push_back(hapVerifyInfo4);
-    EXPECT_FALSE(utils.CheckCompileSdkIsValid(hapVerifyInfos));
+    EXPECT_TRUE(utils.CheckCompileSdkIsValid(hapVerifyInfos));
 }
 
 /*

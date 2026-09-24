@@ -963,6 +963,8 @@ bool ModuleJson::SetStageHapVerifyInfoByAppObj(std::unique_ptr<PtJson>& appObj, 
         return false;
     }
     std::string vendor;
+    std::string compileSdkType;
+    std::string compileSdkVersion;
     Version version;
     ModuleApiVersion moduleApiVersion;
     std::string targetBundleName;
@@ -1009,6 +1011,12 @@ bool ModuleJson::SetStageHapVerifyInfoByAppObj(std::unique_ptr<PtJson>& appObj, 
             "GetAssetAccessGroupsByModuleObj failed!").c_str());
         return false;
     }
+    if (!GetStageCompileSdkTypeByAppObj(appObj, compileSdkType) ||
+        !GetStageCompileSdkVersionByAppObj(appObj, compileSdkVersion)) {
+        LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs(
+            "GetStageCompileSdkTypeByAppObj or GetStageCompileSdkVersionByAppObj failed!").c_str());
+        return false;
+    }
     hapVerifyInfo.SetVendor(vendor);
     hapVerifyInfo.SetVersion(version);
     hapVerifyInfo.SetApiVersion(moduleApiVersion);
@@ -1017,6 +1025,8 @@ bool ModuleJson::SetStageHapVerifyInfoByAppObj(std::unique_ptr<PtJson>& appObj, 
     hapVerifyInfo.SetDebug(debug);
     hapVerifyInfo.SetMultiAppMode(multiAppMode);
     hapVerifyInfo.SetAssetAccessGroups(assetAccessGroups);
+    hapVerifyInfo.SetCompileSdkType(compileSdkType);
+    hapVerifyInfo.SetCompileSdkVersion(compileSdkVersion);
     return true;
 }
 
@@ -1032,8 +1042,6 @@ bool ModuleJson::SetStageHapVerifyInfoByModuleObj(std::unique_ptr<PtJson>& modul
     bool installationFree = false;
     std::string targetModuleName;
     int32_t targetModulePriority = 0;
-    std::string compileSdkType;
-    std::string compileSdkVersion;
     if (!GetStageModuleNameByModuleObj(moduleObj, moduleName)) {
         LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs(
             "GetStageModuleNameByModuleObj failed!").c_str());
@@ -1060,20 +1068,12 @@ bool ModuleJson::SetStageHapVerifyInfoByModuleObj(std::unique_ptr<PtJson>& modul
             "GetTargetModuleNameByModuleObj or GetTargetModulePriorityByModuleObj failed!").c_str());
         return false;
     }
-    if (!GetStageCompileSdkTypeByAppObj(moduleObj, compileSdkType) ||
-        !GetStageCompileSdkVersionByAppObj(moduleObj, compileSdkVersion)) {
-        LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs(
-            "GetStageCompileSdkTypeByAppObj or GetStageCompileSdkVersionByAppObj failed!").c_str());
-        return false;
-    }
     hapVerifyInfo.SetModuleName(moduleName);
     hapVerifyInfo.SetDeviceTypes(deviceTypes);
     hapVerifyInfo.SetModuleType(moduleType);
     hapVerifyInfo.SetInstallationFree(installationFree);
     hapVerifyInfo.SetTargetModuleName(targetModuleName);
     hapVerifyInfo.SetTargetModulePriority(targetModulePriority);
-    hapVerifyInfo.SetCompileSdkType(compileSdkType);
-    hapVerifyInfo.SetCompileSdkVersion(compileSdkVersion);
     return true;
 }
 

@@ -144,6 +144,8 @@ public class CompressVerify {
     private static boolean commandPathVerify(Utility utility) {
         try {
             switch (utility.getMode()) {
+                case Utility.MODE_INSTALLER:
+                    return InstallerPackager.validateArguments(utility);
                 case Utility.MODE_HAP:
                     if (!utility.getBinPath().isEmpty() && utility.getJsonPath().isEmpty()) {
                         return isOutPathValid(utility, HAP_SUFFIX);

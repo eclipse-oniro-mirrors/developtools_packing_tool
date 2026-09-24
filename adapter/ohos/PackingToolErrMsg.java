@@ -1553,4 +1553,95 @@ public class PackingToolErrMsg {
             .setCause("%s")
             .addSolution("Please check the SO deduplication error details and input module configuration.")
             .build();
+
+    /** Installer error 001. */
+    public static final ErrorMsg INSTALLER_ARGUMENT_INVALID = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("22")
+            .setErrCode("001")
+            .setDescription("Installer arguments are invalid.")
+            .setCause("[installer] %s")
+            .addSolution("Correct --contents, --manifest, --out-path and --force for installer mode.")
+            .build();
+
+    /** Installer error 002. */
+    public static final ErrorMsg INSTALLER_PATH_INVALID = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("22")
+            .setErrCode("002")
+            .setDescription("Installer path is invalid.")
+            .setCause("[installer] %s")
+            .addSolution("Choose an output outside contents that does not alias an input module or manifest.")
+            .build();
+
+    /** Installer error 003. */
+    public static final ErrorMsg INSTALLER_CONTENTS_INVALID = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("22")
+            .setErrCode("003")
+            .setDescription("Installer contents are invalid.")
+            .setCause("[installer] %s")
+            .addSolution("Provide nonempty application directories containing only lowercase .hap and .hsp files.")
+            .build();
+
+    /** Installer error 004. */
+    public static final ErrorMsg INSTALLER_MODULE_INVALID = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("22")
+            .setErrCode("004")
+            .setDescription("Installer module is invalid.")
+            .setCause("[installer] %s")
+            .addSolution("Provide readable Stage HAP/HSP modules with bundleType=app, "
+                    + "deviceTypes containing 2in1 and valid profiles.")
+            .build();
+
+    /** Installer error 005. */
+    public static final ErrorMsg INSTALLER_APP_INVALID = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("22")
+            .setErrCode("005")
+            .setDescription("Installer application validation failed.")
+            .setCause("[installer] %s")
+            .addSolution("Correct the application modules according to the preceding module diagnostics.")
+            .build();
+
+    /** Installer error 006. */
+    public static final ErrorMsg INSTALLER_MANIFEST_INVALID = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("22")
+            .setErrCode("006")
+            .setDescription("Installer manifest is invalid.")
+            .setCause("[installer] %s")
+            .addSolution("Match manifest apps to the application directories and provide exactly one coreApp=true.")
+            .build();
+
+    /** Installer error 007. */
+    public static final ErrorMsg INSTALLER_WRITE_FAILED = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("22")
+            .setErrCode("007")
+            .setDescription("Write installer archive failed.")
+            .setCause("[installer] %s")
+            .addSolution("Check input readability, output permissions and available disk space.")
+            .build();
+
+    /** Installer error 008. */
+    public static final ErrorMsg INSTALLER_COMMIT_FAILED = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("22")
+            .setErrCode("008")
+            .setDescription("Commit installer archive failed.")
+            .setCause("[installer] %s")
+            .addSolution("Check the output target and --force setting; preserve the existing output before retrying.")
+            .build();
+
+    /** Installer error 009. */
+    public static final ErrorMsg INSTALLER_CLEANUP_FAILED = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("22")
+            .setErrCode("009")
+            .setDescription("Clean installer temporary output failed.")
+            .setCause("[installer] %s")
+            .addSolution("Check permissions for the reported temporary output and remove it when no longer in use.")
+            .build();
+
+    /** Installer error 010. */
+    public static final ErrorMsg INSTALLER_IO_FAILED = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("22")
+            .setErrCode("010")
+            .setDescription("Installer file operation failed.")
+            .setCause("[installer] %s")
+            .addSolution("Check the reported path, file permissions and available disk space.")
+            .build();
 }

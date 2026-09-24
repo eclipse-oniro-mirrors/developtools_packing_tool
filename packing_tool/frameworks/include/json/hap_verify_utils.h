@@ -71,6 +71,7 @@ public:
     HapVerifyUtils &operator=(const HapVerifyUtils &) = delete;
 
     static bool CheckHapIsValid(const std::list<HapVerifyInfo>& hapVerifyInfos);
+    static bool CheckInstallerAppFields(const std::list<HapVerifyInfo>& modules);
     static bool CheckSharedAppIsValid(const std::list<HapVerifyInfo>& hapVerifyInfos);
     // Validate the shared variant set, then preserve each module's original single-package checks.
     static bool CheckSharedAppVariantsIsValid(const std::list<HapVerifyInfo>& hapVerifyInfos);

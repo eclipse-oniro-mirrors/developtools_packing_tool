@@ -1,0 +1,95 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/ohos.gni")
+import("//build/test.gni")
+
+config("installer_packager_test_config") {
+  include_dirs = [
+    "../../../include",
+    "../../../include/json",
+    "../../../include/error",
+    "../../../include/dedup",
+  ]
+  cflags_cc = [ "-fexceptions" ]
+}
+
+ohos_unittest("installer_packager_test") {
+  module_out_path = "packing_tool/packing_tool"
+  public_configs = [ ":installer_packager_test_config" ]
+  sources = [
+    "../../../src/app_packager.cpp",
+    "../../../src/appqf_packager.cpp",
+    "../../../src/dedup/device_calculator.cpp",
+    "../../../src/dedup/exact_solver.cpp",
+    "../../../src/dedup/greedy_solver.cpp",
+    "../../../src/dedup/module_calculator.cpp",
+    "../../../src/dedup/report_generator.cpp",
+    "../../../src/dedup/so_deduplicator.cpp",
+    "../../../src/error/error_msg.cpp",
+    "../../../src/error/packing_tool_err_msg.cpp",
+    "../../../src/error/scan_error_enum.cpp",
+    "../../../src/fast_app_packager.cpp",
+    "../../../src/general_normalize.cpp",
+    "../../../src/hap_packager.cpp",
+    "../../../src/hqf_packager.cpp",
+    "../../../src/hqf_verify.cpp",
+    "../../../src/hsp_packager.cpp",
+    "../../../src/installer_packager.cpp",
+    "../../../src/json/installer_manifest.cpp",
+    "../../../src/json/distro_filter.cpp",
+    "../../../src/json/general_normalize_version_utils.cpp",
+    "../../../src/json/hap_verify_info.cpp",
+    "../../../src/json/hap_verify_utils.cpp",
+    "../../../src/json/json_utils.cpp",
+    "../../../src/json/module_json.cpp",
+    "../../../src/json/module_json_fa.cpp",
+    "../../../src/json/module_json_stage.cpp",
+    "../../../src/json/module_json_utils.cpp",
+    "../../../src/json/normalize_version_utils.cpp",
+    "../../../src/json/pack_info.cpp",
+    "../../../src/json/pack_info_utils.cpp",
+    "../../../src/json/patch_json.cpp",
+    "../../../src/json/patch_json_utils.cpp",
+    "../../../src/json/pt_json.cpp",
+    "../../../src/log.cpp",
+    "../../../src/multiapp_packager.cpp",
+    "../../../src/package_normalize.cpp",
+    "../../../src/packager.cpp",
+    "../../../src/res_packager.cpp",
+    "../../../src/scan_statdulpicate.cpp",
+    "../../../src/shell_command.cpp",
+    "../../../src/skill_pack_helper.cpp",
+    "../../../src/unzip_wrapper.cpp",
+    "../../../src/utils.cpp",
+    "../../../src/version_normalize.cpp",
+    "../../../src/zip_utils.cpp",
+    "../../../src/zip_wrapper.cpp",
+    "../../../src/incremental_pack.cpp",
+    "installer_packager_test.cpp",
+  ]
+  external_deps = [
+    "bounds_checking_function:libsec_static",
+    "cJSON:cjson_static",
+    "hilog:libhilog",
+    "json:nlohmann_json_static",
+    "openssl:libcrypto_shared",
+    "zlib:libz",
+  ]
+}
+
+group("unittest") {
+  testonly = true
+  deps = [ ":installer_packager_test" ]
+}
+

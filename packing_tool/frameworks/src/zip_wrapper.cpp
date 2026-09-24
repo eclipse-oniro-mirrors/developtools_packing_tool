@@ -110,7 +110,19 @@ int32_t ZipWrapper::AddFileOrDirectoryToZip(const fs::path &fsFilePath,
     return ZIP_ERR_SUCCESS;
 }
 
-int32_t ZipWrapper::WriteStringToZip(const std::string &content, const std::string& zipPath)
+int32_t ZipWrapper::OpenEntry(const std::string& zipPath, int32_t method, int32_t level)
+{
+    if (!utf8FileNames_) {
+        return zipOpenNewFileInZip64(zipFile_, zipPath.c_str(), &zipFileInfo_, nullptr, 0,
+            nullptr, 0, nullptr, method, level, 1);
+    }
+    constexpr uLong UTF8_FILE_NAME_FLAG = 1u << 11;
+    return zipOpenNewFileInZip4_64(zipFile_, zipPath.c_str(), &zipFileInfo_, nullptr, 0,
+        nullptr, 0, nullptr, method, level, 0, -MAX_WBITS, DEF_MEM_LEVEL, Z_DEFAULT_STRATEGY,
+        nullptr, 0, 0, UTF8_FILE_NAME_FLAG, 1);
+}
+
+int32_t ZipWrapper::WriteStringToZip(const std::string &content, const std::string& zipPath, bool isCompress)
 {
     if (!IsOpen()) {
         LOGE("%s", PackingToolErrMsg::COMPRESS_FILE_EXCEPTION.toStringWithArgs(
@@ -118,8 +130,7 @@ int32_t ZipWrapper::WriteStringToZip(const std::string &content, const std::stri
         return ZIP_ERR_FAILURE;
     }
     zipFileInfo_.external_fa = ZIP_FILE_ATTR_DEFAULT;
-    int ret = zipOpenNewFileInZip64(zipFile_, zipPath.c_str(), &zipFileInfo_, nullptr, 0,
-        nullptr, 0, nullptr, 0, static_cast<int>(zipLevel_), 1);
+    int ret = OpenEntry(zipPath, isCompress ? Z_DEFLATED : 0, static_cast<int>(zipLevel_));
     if (ret != ZIP_OK) {
         LOGE("%s", PackingToolErrMsg::COMPRESS_FILE_EXCEPTION.toStringWithArgs(
             ("open file in zip failed![ret=" + std::to_string(ret) + "][zipPath=" + zipPath + "]").c_str()).c_str());
@@ -151,8 +162,8 @@ int32_t ZipWrapper::AddEmptyDirToZip(const fs::path &fsZipPath)
         return ZIP_ERR_FAILURE;
     }
     zipFileInfo_.external_fa = ZIP_FILE_ATTR_DIRECTORY;
-    int ret = zipOpenNewFileInZip64(zipFile_, fsZipDirPath.string().c_str(), &zipFileInfo_, nullptr, 0,
-        nullptr, 0, nullptr, 0, static_cast<int>(zipLevel_), 1);
+    int ret = OpenEntry(utf8FileNames_ ? fsZipDirPath.u8string() : fsZipDirPath.string(),
+        0, static_cast<int>(zipLevel_));
     if (ret != ZIP_OK) {
         LOGE("%s", PackingToolErrMsg::COMPRESS_FILE_EXCEPTION.toStringWithArgs(
             ("open file in zip failed![ret=" + std::to_string(ret) +
@@ -205,8 +216,8 @@ int32_t ZipWrapper::AddFileToZip(const fs::path &fsFilePath,
     } else {
         zipMethod_ = ZipMethod::ZIP_METHOD_STORED;
     }
-    int ret = zipOpenNewFileInZip64(zipFile_, fsZipPath.string().c_str(), &zipFileInfo_, nullptr, 0,
-        nullptr, 0, nullptr, static_cast<int>(zipMethod_), static_cast<int>(zipLevel), 1);
+    int ret = OpenEntry(utf8FileNames_ ? fsZipPath.u8string() : fsZipPath.string(),
+        static_cast<int>(zipMethod_), static_cast<int>(zipLevel));
     if (ret != ZIP_OK) {
         LOGE("%s", PackingToolErrMsg::COMPRESS_FILE_EXCEPTION.toStringWithArgs(
             ("open file in zip failed![ret=" + std::to_string(ret) +
