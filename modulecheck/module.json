@@ -99,7 +99,8 @@
                   "appStartup",
                   "formExtensionModule",
                   "skillProfiles",
-                  "crossAppSharedConfig"
+                  "crossAppSharedConfig",
+                  "launchServices"
                 ]
               },
               "required": [
@@ -138,7 +139,8 @@
                   "appStartup",
                   "formExtensionModule",
                   "skillProfiles",
-                  "crossAppSharedConfig"
+                  "crossAppSharedConfig",
+                  "launchServices"
                 ]
               },
               "required": [
@@ -814,7 +816,8 @@
                 "hnpPackages",
                 "shareFiles",
                 "skillProfiles",
-                "executableBinaryPaths"
+                "executableBinaryPaths",
+                "launchServices"
               ]
             },
             "required": [
@@ -875,7 +878,8 @@
                   "formExtensionModule",
                   "formWidgetModule",
                   "skillProfiles",
-                  "executableBinaryPaths"
+                  "executableBinaryPaths",
+                  "launchServices"
                 ]
               },
               "required": [
@@ -924,7 +928,8 @@
                   "formExtensionModule",
                   "formWidgetModule",
                   "skillProfiles",
-                  "executableBinaryPaths"
+                  "executableBinaryPaths",
+                  "launchServices"
                 ]
               },
               "required": [
@@ -2837,6 +2842,68 @@
                 "type": "string",
                 "maxLength": 128,
                 "pattern": "^(\\.?[a-zA-Z0-9_-]+(\\/\\.?[a-zA-Z0-9_-]+)*\\/)?[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_]+)?$"
+              }
+            }
+          }
+        },
+        "launchServices": {
+          "description": "Indicates the launch services of the module. Each launch service contains name and binaryPath (required), and optional runAtLoad, keepAlive, provideIpcService and type. A maximum of 64 launch services is allowed.",
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "propertyNames": {
+              "enum": [
+                "name",
+                "binaryPath",
+                "runAtLoad",
+                "keepAlive",
+                "provideIpcService",
+                "type"
+              ]
+            },
+            "required": [
+              "name",
+              "binaryPath"
+            ],
+            "properties": {
+              "name": {
+                "description": "Indicates the name of the launch service.",
+                "type": "string",
+                "pattern": "^[a-zA-Z][0-9a-zA-Z_.]*$",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              "binaryPath": {
+                "description": "Indicates the relative path of the executable file for the launch service. It is stored as-is by BMS without file existence validation.",
+                "type": "string",
+                "pattern": "^(?!.*(^|[\/])\\.\\.([\/]|$)).*$",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              "runAtLoad": {
+                "description": "Specifies whether the launch service is started when the module is loaded. The default value is false.",
+                "type": "boolean",
+                "default": false
+              },
+              "keepAlive": {
+                "description": "Specifies whether the launch service is kept alive after startup. The default value is false.",
+                "type": "boolean",
+                "default": false
+              },
+              "provideIpcService": {
+                "description": "Specifies whether the launch service provides an IPC service. The default value is false.",
+                "type": "boolean",
+                "default": false
+              },
+              "type": {
+                "description": "Indicates the type of the launch service. Only daemon is supported. The default value is daemon.",
+                "type": "string",
+                "enum": [
+                  "daemon"
+                ],
+                "default": "daemon"
               }
             }
           }
