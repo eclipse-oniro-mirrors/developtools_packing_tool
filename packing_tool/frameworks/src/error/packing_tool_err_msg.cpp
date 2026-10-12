@@ -812,5 +812,57 @@ const ErrorMsg PackingToolErrMsg::SO_DEDUPLICATION_FAILED =
             "Please check the SO deduplication error details and input module configuration.",
         });
 
+// ==================== Installer errors (Type: 22) ====================
+const ErrorMsg PackingToolErrMsg::INSTALLER_ARGUMENT_INVALID =
+    BuildPackingToolError("22", "001",
+        "Installer arguments are invalid.", "[installer] %s",
+        {"Correct --contents, --manifest, --out-path and --force for installer mode."});
+
+const ErrorMsg PackingToolErrMsg::INSTALLER_PATH_INVALID =
+    BuildPackingToolError("22", "002",
+        "Installer path is invalid.", "[installer] %s",
+        {"Choose an output outside contents that does not alias an input module or manifest."});
+
+const ErrorMsg PackingToolErrMsg::INSTALLER_CONTENTS_INVALID =
+    BuildPackingToolError("22", "003",
+        "Installer contents are invalid.", "[installer] %s",
+        {"Provide nonempty application directories containing only lowercase .hap and .hsp files."});
+
+const ErrorMsg PackingToolErrMsg::INSTALLER_MODULE_INVALID =
+    BuildPackingToolError("22", "004",
+        "Installer module is invalid.", "[installer] %s",
+        {"Provide readable Stage HAP/HSP modules with bundleType=app, "
+            "deviceTypes containing 2in1 and valid profiles."});
+
+const ErrorMsg PackingToolErrMsg::INSTALLER_APP_INVALID =
+    BuildPackingToolError("22", "005",
+        "Installer application validation failed.", "[installer] %s",
+        {"Correct the application modules according to the preceding module diagnostics."});
+
+const ErrorMsg PackingToolErrMsg::INSTALLER_MANIFEST_INVALID =
+    BuildPackingToolError("22", "006",
+        "Installer manifest is invalid.", "[installer] %s",
+        {"Match manifest apps to the application directories and provide exactly one coreApp=true."});
+
+const ErrorMsg PackingToolErrMsg::INSTALLER_WRITE_FAILED =
+    BuildPackingToolError("22", "007",
+        "Write installer archive failed.", "[installer] %s",
+        {"Check input readability, output permissions and available disk space."});
+
+const ErrorMsg PackingToolErrMsg::INSTALLER_COMMIT_FAILED =
+    BuildPackingToolError("22", "008",
+        "Commit installer archive failed.", "[installer] %s",
+        {"Check the output target and --force setting; preserve the existing output before retrying."});
+
+const ErrorMsg PackingToolErrMsg::INSTALLER_CLEANUP_FAILED =
+    BuildPackingToolError("22", "009",
+        "Clean installer temporary output failed.", "[installer] %s",
+        {"Check permissions for the reported temporary output and remove it when no longer in use."});
+
+const ErrorMsg PackingToolErrMsg::INSTALLER_IO_FAILED =
+    BuildPackingToolError("22", "010",
+        "Installer file operation failed.", "[installer] %s",
+        {"Check the reported path, file permissions and available disk space."});
+
 } // namespace error
 } // namespace packing_tool

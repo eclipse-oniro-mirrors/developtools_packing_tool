@@ -48,6 +48,12 @@ public:
         zipLevel_ = zipLevel;
     }
 
+    // Disabled by default; applies UTF-8 encoding and its ZIP flag to newly written entries.
+    void SetUtf8FileNames(bool enabled)
+    {
+        utf8FileNames_ = enabled;
+    }
+
     void SetZipMethod(ZipMethod zipMethod)
     {
         zipMethod_ = zipMethod;
@@ -72,7 +78,7 @@ public:
                                     const bool isCompress = false,
                                     const ZipLevel &zipLevel = ZipLevel::ZIP_LEVEL_DEFAULT);
 
-    int32_t WriteStringToZip(const std::string &content, const std::string &zipPath);
+    int32_t WriteStringToZip(const std::string &content, const std::string &zipPath, bool isCompress = false);
     int32_t AddRawEntryToZip(zipFile destZip, unzFile srcZip, const std::string &entryName);
     ZipLevel StringToZipLevel(const std::string& levelStr);
     
@@ -89,11 +95,14 @@ protected:
                          const ZipLevel &zipLevel = ZipLevel::ZIP_LEVEL_DEFAULT);
 
 private:
+    int32_t OpenEntry(const std::string& zipPath, int32_t method, int32_t level);
+
     zipFile zipFile_ = nullptr;
     zip_fileinfo zipFileInfo_ = {};
     std::string zipFilePath_;
     ZipLevel zipLevel_ = ZipLevel::ZIP_LEVEL_DEFAULT;
     ZipMethod zipMethod_ = ZipMethod::ZIP_METHOD_STORED;
+    bool utf8FileNames_ = false;
 };
 }  // namespace AppPackingTool
 }  // namespace OHOS

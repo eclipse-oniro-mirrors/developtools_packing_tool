@@ -25,6 +25,11 @@ public interface ShowHelp {
      * content of compress command help menu.
      */
     static void compressHelp() {
+        log.info("\nINSTALLER USAGE:\n"
+                + "java -jar app_packing_tool.jar --mode installer --contents <directory> --out-path <file.app>\n"
+                + "[--manifest <manifest.json>] [--force true|false]\n"
+                + "Stage 2in1 modules; lowercase .hap/.hsp and .app; force defaults false.\n"
+                + "Each application is a direct child directory of contents. Output uses STORE ZIP.\n");
         log.info("\nHAP USAGE:\n" +
                 "java -jar app_packing_tool.jar --mode <options> --json-path <option>\n" +
                 "--profile-path [option] --maple-so-path [option] --maple-so-dir [option]\n" +

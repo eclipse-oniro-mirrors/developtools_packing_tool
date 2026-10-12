@@ -32,6 +32,7 @@ public class Utility {
     static final String MODE_HAP = "hap";
     static final String MODE_HAR = "har";
     static final String MODE_APP = "app";
+    static final String MODE_INSTALLER = "installer";
     static final String MODE_FAST_APP = "fastApp";
     static final String MODE_MULTI_APP = "multiApp";
     static final String MODE_HQF = "hqf";
@@ -50,6 +51,8 @@ public class Utility {
     private static final Log LOG = new Log(Utility.class.toString());
 
     private String mode = "";
+    private String installerContents = "";
+    private String installerManifest;
     private String jsonPath = "";
     private String profilePath = "";
     private String soPath = "";
@@ -170,6 +173,22 @@ public class Utility {
     private boolean skillProfileNamesLoaded = false;
     private String multiAppExtractTempDir = "";
     private Map<String, List<String>> multiAppExtractedModulesByApp = new HashMap<>();
+
+    public String getInstallerContents() {
+        return installerContents;
+    }
+
+    public void setInstallerContents(String value) {
+        installerContents = value;
+    }
+
+    public String getInstallerManifest() {
+        return installerManifest;
+    }
+
+    public void setInstallerManifest(String value) {
+        installerManifest = value;
+    }
 
     public void setIsParse(boolean isParse) {
         this.isParse = isParse;

@@ -64,6 +64,36 @@ std::string FormatModuleNameList(const std::list<std::string>& moduleNames)
     result += "]";
     return result;
 }
+
+struct VersionMismatchDetails {
+    std::string field;
+    std::string firstModule;
+    std::string secondModule;
+    int32_t firstValue;
+    int32_t secondValue;
+};
+
+std::string FormatVersionMismatchCause(const VersionMismatchDetails& details)
+{
+    return "The " + details.field + " attribute values of two Hap are different. Hap[" +
+        details.firstModule + "]: (" + details.field + ": " + std::to_string(details.firstValue) +
+        "); Hap[" + details.secondModule + "]: (" + details.field + ": " +
+        std::to_string(details.secondValue) + ").";
+}
+
+std::string FormatVersionMismatchSolution(const VersionMismatchDetails& details)
+{
+    return "Ensure values of " + details.field + " are same in each HAP.";
+}
+
+void LogVersionMismatch(const VersionMismatchDetails& details)
+{
+    std::string cause = FormatVersionMismatchCause(details);
+    std::string solution = FormatVersionMismatchSolution(details);
+    LOGE("%s", PackingToolErrMsg::CHECK_HAP_INVALID.toStringWithArgs(
+        cause + " Solution: " + solution).c_str());
+}
+
 }
 
 bool HapVerifyUtils::CheckHapIsValid(const std::list<HapVerifyInfo>& hapVerifyInfos)
@@ -153,6 +183,24 @@ bool HapVerifyUtils::CheckIsPluginApp(const std::list<HapVerifyInfo>& hapVerifyI
         }
     }
     return true;
+}
+
+bool HapVerifyUtils::CheckInstallerAppFields(const std::list<HapVerifyInfo>& modules)
+{
+    if (modules.empty()) {
+        return false;
+    }
+    const auto& first = modules.front();
+    for (const auto& module : modules) {
+        if (first.GetVersion().versionName != module.GetVersion().versionName) {
+            LOGE("%s", PackingToolErrMsg::APP_FIELDS_DIFFERENT_ERROR.toStringWithArgs(
+                std::vector<std::string>{"Application identity field differs: versionName (" +
+                first.GetModuleName() + ", " + module.GetModuleName() + ")",
+                "Ensure application identity fields match."}).c_str());
+            return false;
+        }
+    }
+    return CheckHapIsValid(modules);
 }
 
 bool HapVerifyUtils::CheckAppFieldsIsSame(const std::list<HapVerifyInfo>& hapVerifyInfos)
@@ -245,34 +293,22 @@ bool HapVerifyUtils::AppFieldsIsValid(const std::list<HapVerifyInfo>& hapVerifyI
     int32_t baseTargetApiVersion = baseHap.GetApiVersion().targetApiVersion;
     int32_t baseCompatibleApiVersion = baseHap.GetApiVersion().compatibleApiVersion;
     for (const auto& hap : hapVerifyInfos) {
-        if (baseMinCompatibleVersionCode != hap.GetVersion().minCompatibleVersionCode) {
-            LOGE("%s", PackingToolErrMsg::CHECK_HAP_INVALID.toStringWithArgs(
-                std::string("The minCompatibleVersionCode attribute values of two Hap are different. ") +
-                "Hap[" + baseHap.GetModuleName() + "]: (minCompatibleVersionCode: " +
-                std::to_string(baseMinCompatibleVersionCode) + "); " +
-                "Hap[" + hap.GetModuleName() + "]: (minCompatibleVersionCode: " +
-                std::to_string(hap.GetVersion().minCompatibleVersionCode) + "). " +
-                "Solution: Ensure values of minCompatibleVersionCode are same in each HAP.").c_str());
+        int32_t hapMinCompatibleVersionCode = hap.GetVersion().minCompatibleVersionCode;
+        int32_t hapTargetApiVersion = hap.GetApiVersion().targetApiVersion;
+        int32_t hapCompatibleApiVersion = hap.GetApiVersion().compatibleApiVersion;
+        if (baseMinCompatibleVersionCode != hapMinCompatibleVersionCode) {
+            LogVersionMismatch({"minCompatibleVersionCode", baseHap.GetModuleName(), hap.GetModuleName(),
+                baseMinCompatibleVersionCode, hapMinCompatibleVersionCode});
             return false;
         }
-        if (baseTargetApiVersion != hap.GetApiVersion().targetApiVersion) {
-            LOGE("%s", PackingToolErrMsg::CHECK_HAP_INVALID.toStringWithArgs(
-                std::string("The targetApiVersion attribute values of two Hap are different. ") +
-                "Hap[" + baseHap.GetModuleName() + "]: (targetApiVersion: " +
-                std::to_string(baseTargetApiVersion) + "); " +
-                "Hap[" + hap.GetModuleName() + "]: (targetApiVersion: " +
-                std::to_string(hap.GetApiVersion().targetApiVersion) + "). " +
-                "Solution: Ensure values of targetApiVersion are same in each HAP.").c_str());
+        if (baseTargetApiVersion != hapTargetApiVersion) {
+            LogVersionMismatch({"targetApiVersion", baseHap.GetModuleName(), hap.GetModuleName(),
+                baseTargetApiVersion, hapTargetApiVersion});
             return false;
         }
-        if (baseCompatibleApiVersion != hap.GetApiVersion().compatibleApiVersion) {
-            LOGE("%s", PackingToolErrMsg::CHECK_HAP_INVALID.toStringWithArgs(
-                std::string("The minApiVersion attribute values of two Hap are different. ") +
-                "Hap[" + baseHap.GetModuleName() + "]: (minApiVersion: " +
-                std::to_string(baseCompatibleApiVersion) + "); " +
-                "Hap[" + hap.GetModuleName() + "]: (minApiVersion: " +
-                std::to_string(hap.GetApiVersion().compatibleApiVersion) + "). " +
-                "Solution: Ensure values of minApiVersion are same in each HAP.").c_str());
+        if (baseCompatibleApiVersion != hapCompatibleApiVersion) {
+            LogVersionMismatch({"minApiVersion", baseHap.GetModuleName(), hap.GetModuleName(),
+                baseCompatibleApiVersion, hapCompatibleApiVersion});
             return false;
         }
     }
@@ -380,11 +416,15 @@ bool HapVerifyUtils::AppFieldsIsSame(const VerifyCollection& verifyCollection, c
         return false;
     }
     if (verifyCollection.releaseType != hapVerifyInfo.GetApiVersion().releaseType) {
-        LOGE("%s", PackingToolErrMsg::APP_FIELDS_DIFFERENT_ERROR.toStringWithArgs(
-            "input module releaseType is different.").c_str());
-        LOGE("%s", PackingToolErrMsg::APP_FIELDS_DIFFERENT_ERROR.toStringWithArgs(
-            "Solutions: > Check if the releaseType is the same in different modules.").c_str());
-        return false;
+        if (verifyCollection.moduleType == TYPE_SHARED || hapVerifyInfo.GetModuleType() == TYPE_SHARED) {
+            LOGW("Module: (%s) and Module: (%s) has different releaseType.",
+                verifyCollection.moduleName.c_str(), hapVerifyInfo.GetModuleName().c_str());
+        } else {
+            LOGE("%s", PackingToolErrMsg::APP_FIELDS_DIFFERENT_ERROR.toStringWithArgs(
+                std::vector<std::string>{"The module releaseType parameter values are different.",
+                    "Check if the releaseType is the same in different modules."}).c_str());
+            return false;
+        }
     }
     if (verifyCollection.targetBundleName != hapVerifyInfo.GetTargetBundleName()) {
         LOGE("%s", PackingToolErrMsg::APP_FIELDS_DIFFERENT_ERROR.toStringWithArgs(
@@ -1323,7 +1363,6 @@ bool HapVerifyUtils::CheckCompileSdkIsValid(const std::list<HapVerifyInfo>& hapV
             "hapVerifyInfos is empty!").c_str());
         return false;
     }
-    std::string compileSdkVersion = hapVerifyInfos.begin()->GetCompileSdkVersion();
     std::string compileSdkType = hapVerifyInfos.begin()->GetCompileSdkType();
     for (auto& hapVerifyInfo : hapVerifyInfos) {
         if (hapVerifyInfo.GetCompileSdkType() != compileSdkType) {
@@ -1332,11 +1371,6 @@ bool HapVerifyUtils::CheckCompileSdkIsValid(const std::list<HapVerifyInfo>& hapV
                     "CompileSdkType is not the same for all modules.",
                     "Ensure that all modules has same compileSdkType."
                 }).c_str());
-            return false;
-        }
-        if (hapVerifyInfo.GetCompileSdkVersion() != compileSdkVersion) {
-            LOGE("%s", PackingToolErrMsg::COMPILE_SDK_TYPE_DIFFERENT.toStringWithArgs(
-                "compile sdk version is not same.").c_str());
             return false;
         }
     }

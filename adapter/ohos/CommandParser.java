@@ -38,6 +38,8 @@ public class CommandParser {
     public static final String CMD_DEDUPLICATE_SO = "--deduplicate-so";
 
     private static final String CMD_MODE = "--mode";
+    private static final String CMD_CONTENTS = "--contents";
+    private static final String CMD_MANIFEST = "--manifest";
     private static final String CMD_JSON_PATH = "--json-path";
     private static final String CMD_PROFILE_PATH = "--profile-path";
     private static final String CMD_INDEX_PATH = "--index-path";
@@ -142,6 +144,14 @@ public class CommandParser {
     }
 
     private static void initCommandFuncs() {
+        commandFuncs.put(CMD_CONTENTS, entry -> {
+            entry.getKey().setInstallerContents(entry.getValue());
+            return true;
+        });
+        commandFuncs.put(CMD_MANIFEST, entry -> {
+            entry.getKey().setInstallerManifest(entry.getValue());
+            return true;
+        });
         commandFuncs.put(CMD_MODE, entry -> {
             entry.getKey().setMode(entry.getValue());
             return true;

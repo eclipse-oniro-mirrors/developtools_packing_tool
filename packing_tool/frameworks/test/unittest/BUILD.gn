@@ -26,6 +26,7 @@ group("unittest") {
     "hqf_packager_test:unittest",
     "hqf_verify_test:unittest",
     "hsp_packager_test:unittest",
+    "installer_packager_test:unittest",
     "json/distro_filter_test:unittest",
     "json/hap_verify_info_test:unittest",
     "json/hap_verify_utils_test:unittest",

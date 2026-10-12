@@ -480,6 +480,8 @@ public class Compressor {
      */
     public boolean compressProcess(Utility utility) {
         switch (utility.getMode()) {
+            case Utility.MODE_INSTALLER:
+                return InstallerPackager.pack(utility);
             case Utility.VERSION_NORMALIZE:
                 versionNormalize(utility);
                 return true;

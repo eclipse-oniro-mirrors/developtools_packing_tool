@@ -192,6 +192,18 @@ public:
     // ==================== SO deduplication errors (Type: 21) ====================
     static const ErrorMsg SO_DEDUPLICATION_FAILED;
 
+    // ==================== Installer errors (Type: 22) ====================
+    static const ErrorMsg INSTALLER_ARGUMENT_INVALID;
+    static const ErrorMsg INSTALLER_PATH_INVALID;
+    static const ErrorMsg INSTALLER_CONTENTS_INVALID;
+    static const ErrorMsg INSTALLER_MODULE_INVALID;
+    static const ErrorMsg INSTALLER_APP_INVALID;
+    static const ErrorMsg INSTALLER_MANIFEST_INVALID;
+    static const ErrorMsg INSTALLER_WRITE_FAILED;
+    static const ErrorMsg INSTALLER_COMMIT_FAILED;
+    static const ErrorMsg INSTALLER_CLEANUP_FAILED;
+    static const ErrorMsg INSTALLER_IO_FAILED;
+
 private:
     PackingToolErrMsg() = delete;
 };
