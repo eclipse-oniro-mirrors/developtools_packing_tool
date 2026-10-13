@@ -1858,7 +1858,7 @@ public class Compressor {
                 for (String appPath : utility.getFormattedAppList()) {
                     try (ZipFile app = new ZipFile(appPath)) {
                         if (app.getEntry(moduleName) != null) {
-                            originalPath = appPath;
+                            originalPath = appPath + File.separatorChar + moduleName;
                             break;
                         }
                     }

@@ -106,7 +106,7 @@ bool BuildOriginalModulePaths(const std::list<std::string> &modulePaths,
             LOGE("Failed to find original input path for module: %s", moduleName.c_str());
             return false;
         }
-        originalModulePaths.push_back(*app);
+        originalModulePaths.push_back(*app + fs::path::preferred_separator + moduleName);
     }
     return true;
 }
