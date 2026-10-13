@@ -139,6 +139,7 @@
             "appPreloadPhase",
             "buildVersion",
             "profileable",
+            "allowAutoControlIntent",
             "allowListenBundleChangedEvent"
           ]
         }
@@ -644,6 +645,11 @@
           "type": "string",
           "maxLength": 18,
           "pattern": "^(?=.{1,18}$)(?:0|[1-9]\\d*)(?:\\.(?:0|[1-9]\\d*)){0,2}$"
+        },
+        "allowAutoControlIntent": {
+          "description": "Indicates whether the application allows automation control by third-party applications.",
+          "type": "boolean",
+          "default": false
         },
         "profileable": {
           "description": "Describes whether application allows profiling tools to analyze performance on release builds.",
