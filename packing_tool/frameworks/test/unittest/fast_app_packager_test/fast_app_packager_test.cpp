@@ -40,6 +40,19 @@ const std::string PACK_INFO_PATH = "/data/test/resource/packingtool/test_file/pa
 const std::string ENTRY_PATH = "/data/test/resource/packingtool/test_file/entry";
 const std::string HSP_PATH = "/data/test/resource/packingtool/test_file/fastAppPackagerHspTest.hsp";
 const std::string TEST_PATH = "/data/test/pack.info";
+const std::string DEDUPLIST_SDK_PATH = "/data/test/deduplist_sdk.json";
+// The deduplist sdk file is parsed during packaging, so it must be a parseable json object.
+// The declared dedupMinApiVersion is higher than the api version of the test packages, which
+// keeps inter-app deduplication skipped and the packaged output of this test unchanged.
+const std::string DEDUPLIST_SDK_CONTENT = "{"
+    "\"dedupMinApiVersion\":99,"
+    "\"deviceType\":[\"phone\"],"
+    "\"libraries\":[{"
+        "\"name\":\"libunittest_dedup.so\","
+        "\"abi\":\"arm64-v8a\","
+        "\"99.0.0\":\"0000000000000000000000000000000000000000000000000000000000000000\""
+    "}]"
+"}";
 const std::string MODULE_JSON_TEST_STRING = "{"
     "\"app\": {"
         "\"apiVersion\": {"
@@ -154,6 +167,13 @@ void DeleteFile(const std::string& file)
     system(cmd.c_str());
 }
 
+void WriteDeduplistSdkFile()
+{
+    std::ofstream stream(DEDUPLIST_SDK_PATH, std::ios::binary | std::ios::trunc);
+    stream << DEDUPLIST_SDK_CONTENT;
+    stream.close();
+}
+
 /*
  * @tc.name: statDuplicate_0100
  * @tc.desc: statDuplicate.
@@ -171,6 +191,7 @@ HWTEST_F(FastAppPackagerTest, statDuplicate_0100, Function | MediumTest | Level1
         {OHOS::AppPackingTool::Constants::PARAM_HAP_PATH, HAP_PATH},
         {OHOS::AppPackingTool::Constants::PARAM_HSP_PATH, HSP_PATH},
         {OHOS::AppPackingTool::Constants::PARAM_PACK_INFO_PATH, PACK_INFO_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_DEDUPLIST_SDK_PATH, DEDUPLIST_SDK_PATH},
     };
 
     OHOS::AppPackingTool::FastAppPackager fastAppackager(parameterMap, resultReceiver);
@@ -182,6 +203,8 @@ HWTEST_F(FastAppPackagerTest, statDuplicate_0100, Function | MediumTest | Level1
     system("mkdir /data/test/resource/packingtool/test_file/hap/entry/libs/armeabi-v7a");
     system("touch /data/test/resource/packingtool/test_file/hap/entry/libs/armeabi-v7a/test1.z.so");
     system("touch /data/test/resource/packingtool/test_file/hap/entry/libs/armeabi-v7a/test2.z.so");
+    // The deduplist sdk file must be parseable, an empty file fails the packaging pipeline
+    WriteDeduplistSdkFile();
     MockFastAppModuleJsonUtils::MockCheckAppAtomicServiceCompressedSizeValid(true);
     MockFastAppModuleJsonUtils::MockGetHapVerifyInfosMapfromFileList(true);
     EXPECT_EQ(fastAppackager.InitAllowedParam(), 0);
@@ -198,6 +221,7 @@ HWTEST_F(FastAppPackagerTest, statDuplicate_0100, Function | MediumTest | Level1
     std::string cmd = {"rm -f "};
     cmd += OUT_PATH;
     system(cmd.c_str());
+    system(("rm -f " + DEDUPLIST_SDK_PATH).c_str());
 }
 
 /*

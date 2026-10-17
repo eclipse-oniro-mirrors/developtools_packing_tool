@@ -9286,4 +9286,117 @@ HWTEST_F(ModuleJsonTest, CheckDeduplicateHar_0400, Function | MediumTest | Level
     EXPECT_TRUE(moduleJson.ParseFromString(MODULE_JSON_STRING_WITH_DEDUPLICATE_HAR_2));
     EXPECT_FALSE(moduleJson.CheckDeduplicateHar());
 }
+
+/*
+ * @tc.name: GetStageHasDriverExtensionAbility_0100
+ * @tc.desc: test a driver extensionAbility is detected while non driver, type-less and empty
+ *           extensionAbilities are reported as false
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(ModuleJsonTest, GetStageHasDriverExtensionAbility_0100, Function | MediumTest | Level1)
+{
+    OHOS::AppPackingTool::ModuleJson driverJson;
+    EXPECT_TRUE(driverJson.ParseFromString(
+        "{\"module\":{\"name\":\"entry\",\"extensionAbilities\":[{\"name\":\"a\",\"type\":\"service\"},"
+        "{\"name\":\"b\",\"type\":\"driver\"}]}}"));
+    bool hasDriverExtensionAbility = false;
+    EXPECT_TRUE(driverJson.GetStageHasDriverExtensionAbility(hasDriverExtensionAbility));
+    EXPECT_TRUE(hasDriverExtensionAbility);
+
+    // Non driver entries, entries without a type and non object entries are skipped
+    OHOS::AppPackingTool::ModuleJson noDriverJson;
+    EXPECT_TRUE(noDriverJson.ParseFromString(
+        "{\"module\":{\"name\":\"entry\",\"extensionAbilities\":[{\"name\":\"a\",\"type\":\"service\"},"
+        "1,{\"name\":\"b\"}]}}"));
+    hasDriverExtensionAbility = true;
+    EXPECT_TRUE(noDriverJson.GetStageHasDriverExtensionAbility(hasDriverExtensionAbility));
+    EXPECT_FALSE(hasDriverExtensionAbility);
+
+    OHOS::AppPackingTool::ModuleJson emptyArrayJson;
+    EXPECT_TRUE(emptyArrayJson.ParseFromString(
+        "{\"module\":{\"name\":\"entry\",\"extensionAbilities\":[]}}"));
+    hasDriverExtensionAbility = true;
+    EXPECT_TRUE(emptyArrayJson.GetStageHasDriverExtensionAbility(hasDriverExtensionAbility));
+    EXPECT_FALSE(hasDriverExtensionAbility);
+
+    OHOS::AppPackingTool::ModuleJson noExtensionJson;
+    EXPECT_TRUE(noExtensionJson.ParseFromString("{\"module\":{\"name\":\"entry\"}}"));
+    hasDriverExtensionAbility = true;
+    EXPECT_TRUE(noExtensionJson.GetStageHasDriverExtensionAbility(hasDriverExtensionAbility));
+    EXPECT_FALSE(hasDriverExtensionAbility);
+
+    OHOS::AppPackingTool::ModuleJson defaultJson;
+    EXPECT_TRUE(defaultJson.ParseFromString(MODULE_JSON_STRING));
+    hasDriverExtensionAbility = true;
+    EXPECT_TRUE(defaultJson.GetStageHasDriverExtensionAbility(hasDriverExtensionAbility));
+    EXPECT_FALSE(hasDriverExtensionAbility);
+}
+
+/*
+ * @tc.name: GetStageHasDriverExtensionAbility_0200
+ * @tc.desc: test a missing module node and a malformed extensionAbilities node both fail
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(ModuleJsonTest, GetStageHasDriverExtensionAbility_0200, Function | MediumTest | Level1)
+{
+    OHOS::AppPackingTool::ModuleJson noModuleJson;
+    EXPECT_TRUE(noModuleJson.ParseFromString("{\"app\":{\"bundleName\":\"com.example.app\"}}"));
+    bool hasDriverExtensionAbility = false;
+    EXPECT_FALSE(noModuleJson.GetStageHasDriverExtensionAbility(hasDriverExtensionAbility));
+
+    OHOS::AppPackingTool::ModuleJson unparsedJson;
+    EXPECT_FALSE(unparsedJson.GetStageHasDriverExtensionAbility(hasDriverExtensionAbility));
+
+    OHOS::AppPackingTool::ModuleJson notArrayJson;
+    EXPECT_TRUE(notArrayJson.ParseFromString(
+        "{\"module\":{\"name\":\"entry\",\"extensionAbilities\":\"test\"}}"));
+    EXPECT_FALSE(notArrayJson.GetStageHasDriverExtensionAbility(hasDriverExtensionAbility));
+    EXPECT_FALSE(hasDriverExtensionAbility);
+}
+
+/*
+ * @tc.name: GetStageHasDriverExtensionAbilityByModuleObj_0100
+ * @tc.desc: test the module object overload rejects a null module object
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(ModuleJsonTest, GetStageHasDriverExtensionAbilityByModuleObj_0100, Function | MediumTest | Level1)
+{
+    OHOS::AppPackingTool::ModuleJson moduleJson;
+    std::unique_ptr<AppPackingTool::PtJson> moduleObj;
+    bool hasDriverExtensionAbility = true;
+    EXPECT_FALSE(moduleJson.GetStageHasDriverExtensionAbilityByModuleObj(moduleObj, hasDriverExtensionAbility));
+    EXPECT_FALSE(hasDriverExtensionAbility);
+}
+
+/*
+ * @tc.name: GetStageHasDriverExtensionAbilityByModuleObj_0200
+ * @tc.desc: test the module object overload detects a driver extensionAbility of an already parsed module
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(ModuleJsonTest, GetStageHasDriverExtensionAbilityByModuleObj_0200, Function | MediumTest | Level1)
+{
+    OHOS::AppPackingTool::ModuleJson moduleJson;
+    EXPECT_TRUE(moduleJson.ParseFromString(
+        "{\"module\":{\"name\":\"entry\",\"extensionAbilities\":[{\"name\":\"a\",\"type\":\"service\"}]}}"));
+    std::unique_ptr<AppPackingTool::PtJson> moduleObj;
+    EXPECT_TRUE(moduleJson.GetModuleObject(moduleObj));
+    bool hasDriverExtensionAbility = true;
+    EXPECT_TRUE(moduleJson.GetStageHasDriverExtensionAbilityByModuleObj(moduleObj, hasDriverExtensionAbility));
+    EXPECT_FALSE(hasDriverExtensionAbility);
+
+    OHOS::AppPackingTool::ModuleJson driverJson;
+    EXPECT_TRUE(driverJson.ParseFromString(
+        "{\"module\":{\"name\":\"entry\",\"extensionAbilities\":[{\"name\":\"a\",\"type\":\"service\"},"
+        "{\"name\":\"b\",\"type\":\"driver\"}]}}"));
+    std::unique_ptr<AppPackingTool::PtJson> driverModuleObj;
+    EXPECT_TRUE(driverJson.GetModuleObject(driverModuleObj));
+    hasDriverExtensionAbility = false;
+    EXPECT_TRUE(driverJson.GetStageHasDriverExtensionAbilityByModuleObj(driverModuleObj,
+        hasDriverExtensionAbility));
+    EXPECT_TRUE(hasDriverExtensionAbility);
+}
 }

@@ -1554,6 +1554,17 @@ public class PackingToolErrMsg {
             .addSolution("Please check the SO deduplication error details and input module configuration.")
             .build();
 
+    /**
+     * SO_DEDUPLICATION_FOR_SDK_FAILED
+     */
+    public static final ErrorMsg SO_DEDUPLICATION_FOR_SDK_FAILED = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("21")
+            .setErrCode("002")
+            .setDescription("SO deduplication for sdk failed.")
+            .setCause("%s")
+            .addSolution("Please check the SO deduplication for sdk error details and deduplist sdk configuration.")
+            .build();
+
     /** Installer error 001. */
     public static final ErrorMsg INSTALLER_ARGUMENT_INVALID = ErrorMsg.getPackingToolErrBuilder()
             .setTypeCode("22")

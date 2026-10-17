@@ -699,10 +699,15 @@ bool MultiAppPackager::CompressAppModeForMultiProject()
     } else {
         originalModulePaths = fileList;
     }
-    if (!soDeduplicator.DeduplicateModules(fileList, originalModulePaths, deduplicateSo,
-        tempHapDirPath.string(), reportDir)) {
-        LOGE("%s", PackingToolErrMsg::SO_DEDUPLICATION_FAILED.toStringWithArgs(
-            soDeduplicator.GetErrorMessage()).c_str());
+    std::map<std::string, std::string>::const_iterator dedupListIt =
+        parameterMap_.find(Constants::PARAM_DEDUPLIST_SDK_PATH);
+    std::string interAppDedupListPath =
+        (dedupListIt == parameterMap_.end()) ? std::string() : dedupListIt->second;
+    if (!soDeduplicator.DeduplicateModules(fileList, originalModulePaths,
+        DedupSwitch{deduplicateSo, interAppDedupListPath}, tempHapDirPath.string(), reportDir)) {
+        LOGE("%s", (soDeduplicator.IsInterAppFailure()
+            ? PackingToolErrMsg::SO_DEDUPLICATION_FOR_SDK_FAILED
+            : PackingToolErrMsg::SO_DEDUPLICATION_FAILED).toStringWithArgs(soDeduplicator.GetErrorMessage()).c_str());
         return false;
     }
     if (!ModuleJsonUtils::CheckHapsIsValid(fileList, false)) {

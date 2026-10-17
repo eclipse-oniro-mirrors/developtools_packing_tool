@@ -191,6 +191,7 @@ public:
 
     // ==================== SO deduplication errors (Type: 21) ====================
     static const ErrorMsg SO_DEDUPLICATION_FAILED;
+    static const ErrorMsg SO_DEDUPLICATION_FOR_SDK_FAILED;
 
     // ==================== Installer errors (Type: 22) ====================
     static const ErrorMsg INSTALLER_ARGUMENT_INVALID;

@@ -1649,7 +1649,8 @@ public class Compressor {
                 }
             }
             fileList = SODeduplicator.deduplicateModules(fileList, originalModulePaths,
-                    utility.isDeduplicateSo(), tempDir.toPath(), appOutputFile.getParentFile().toPath());
+                    new SODeduplicator.DedupSwitch(utility.isDeduplicateSo(), utility.getDeduplistSdkPath()),
+                    tempDir.toPath(), appOutputFile.getParentFile().toPath());
             // check hap is valid
             if (!checkHapIsValid(fileList, utility.getSharedApp())) {
                 throw new BundleException("Verify failed when compress app.");
@@ -1722,7 +1723,8 @@ public class Compressor {
                 }
             }
             fileList = SODeduplicator.deduplicateModules(fileList, originalModulePaths,
-                    utility.isDeduplicateSo(), tmpDir, appOutPath.getParent());
+                    new SODeduplicator.DedupSwitch(utility.isDeduplicateSo(), utility.getDeduplistSdkPath()),
+                    tmpDir, appOutPath.getParent());
             // check hap is valid
             if (!checkHapIsValid(fileList, utility.getSharedApp())) {
                 throw new BundleException("Verify failed when compress fast app.");
@@ -1810,7 +1812,8 @@ public class Compressor {
             List<String> originalModulePaths = utility.isDeduplicateSo()
                     ? findOriginalModulePaths(utility, seletedHaps) : selectedHapPaths;
             selectedHapPaths = SODeduplicator.deduplicateModules(selectedHapPaths, originalModulePaths,
-                    utility.isDeduplicateSo(), tempHapDir.toPath(), appOutputFile.getParentFile().toPath());
+                    new SODeduplicator.DedupSwitch(utility.isDeduplicateSo(), utility.getDeduplistSdkPath()),
+                    tempHapDir.toPath(), appOutputFile.getParentFile().toPath());
             for (String hapPathItem : selectedHapPaths) {
                 File hapFile = new File(hapPathItem.trim());
                 String hapTempPath = tempHapDir.getPath() + File.separator + hapFile.getName();

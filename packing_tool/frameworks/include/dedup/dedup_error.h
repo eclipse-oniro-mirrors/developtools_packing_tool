@@ -27,6 +27,11 @@ inline std::string FormatDedupError(const std::string& cause)
     return packing_tool::error::PackingToolErrMsg::SO_DEDUPLICATION_FAILED.toStringWithArgs(cause);
 }
 
+inline std::string FormatInterAppDedupError(const std::string& cause)
+{
+    return packing_tool::error::PackingToolErrMsg::SO_DEDUPLICATION_FOR_SDK_FAILED.toStringWithArgs(cause);
+}
+
 } // namespace AppPackingTool
 } // namespace OHOS
 

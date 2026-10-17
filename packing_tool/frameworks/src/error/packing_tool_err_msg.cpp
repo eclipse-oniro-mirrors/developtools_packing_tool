@@ -812,6 +812,13 @@ const ErrorMsg PackingToolErrMsg::SO_DEDUPLICATION_FAILED =
             "Please check the SO deduplication error details and input module configuration.",
         });
 
+const ErrorMsg PackingToolErrMsg::SO_DEDUPLICATION_FOR_SDK_FAILED =
+    BuildPackingToolError("21", "002",
+        "SO deduplication for sdk failed.", "%s",
+        {
+            "Please check the SO deduplication for sdk error details and deduplist sdk configuration.",
+        });
+
 // ==================== Installer errors (Type: 22) ====================
 const ErrorMsg PackingToolErrMsg::INSTALLER_ARGUMENT_INVALID =
     BuildPackingToolError("22", "001",

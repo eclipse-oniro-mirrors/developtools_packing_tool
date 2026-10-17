@@ -70,6 +70,8 @@ const std::string DISTRO_FILTER = "distroFilter";
 const std::string DISTRIBUTION_FILTER = "distributionFilter";
 const std::string DEPENDENCIES = "dependencies";
 const std::string EXTENSION_ABILITIES = "extensionAbilities";
+const std::string EXTENSION_ABILITY_TYPE = "type";
+const std::string DRIVER_EXTENSION_ABILITY_TYPE = "driver";
 const std::string INSTALLATION_FREE = "installationFree";
 const std::string COMPRESS_NATIVE_LIBS = "compressNativeLibs";
 const std::string ASAN_ENABLED = "asanEnabled";
@@ -884,6 +886,51 @@ bool ModuleJson::GetExtensionAbilityNamesByModuleObj(std::unique_ptr<PtJson>& mo
             LOGE("%s", PackingToolErrMsg::PARSE_JSON_FAILED.toStringWithArgs(
                 "GetExtensionAbilityNamesByExtensionAbilityObj failed!").c_str());
             return false;
+        }
+    }
+    return true;
+}
+
+bool ModuleJson::GetStageHasDriverExtensionAbility(bool& hasDriverExtensionAbility)
+{
+    std::unique_ptr<PtJson> moduleObj;
+    if (!GetModuleObject(moduleObj)) {
+        LOGE("%s", PackingToolErrMsg::PARSE_JSON_FAILED.toStringWithArgs("GetModuleObject failed!").c_str());
+        return false;
+    }
+    return GetStageHasDriverExtensionAbilityByModuleObj(moduleObj, hasDriverExtensionAbility);
+}
+
+bool ModuleJson::GetStageHasDriverExtensionAbilityByModuleObj(std::unique_ptr<PtJson>& moduleObj,
+    bool& hasDriverExtensionAbility)
+{
+    hasDriverExtensionAbility = false;
+    if (!moduleObj) {
+        LOGE("%s", PackingToolErrMsg::PARSE_JSON_FAILED.toStringWithArgs("Module node is null!").c_str());
+        return false;
+    }
+    if (!moduleObj->Contains(EXTENSION_ABILITIES.c_str())) {
+        return true;
+    }
+    std::unique_ptr<PtJson> extensionAbilitiesObj;
+    if (moduleObj->GetArray(EXTENSION_ABILITIES.c_str(), &extensionAbilitiesObj) != Result::SUCCESS) {
+        LOGE("%s", PackingToolErrMsg::PARSE_JSON_FAILED.toStringWithArgs(
+            ("Module node get " + EXTENSION_ABILITIES + " array node failed!").c_str()).c_str());
+        return false;
+    }
+    for (int32_t index = 0; index < extensionAbilitiesObj->GetSize(); index++) {
+        std::unique_ptr<PtJson> extensionAbilityObj = extensionAbilitiesObj->Get(index);
+        if (!extensionAbilityObj) {
+            continue;
+        }
+        std::string extensionAbilityType;
+        if (extensionAbilityObj->GetString(EXTENSION_ABILITY_TYPE.c_str(), &extensionAbilityType) !=
+            Result::SUCCESS) {
+            continue;
+        }
+        if (extensionAbilityType == DRIVER_EXTENSION_ABILITY_TYPE) {
+            hasDriverExtensionAbility = true;
+            return true;
         }
     }
     return true;

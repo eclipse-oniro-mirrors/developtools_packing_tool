@@ -64,6 +64,10 @@ ModuleConfig ModuleCalculator::ExtractModuleConfig(
         if (moduleJson->GetStageDeviceTypes(deviceTypeStrings)) {
             for (const auto& deviceTypeStr : deviceTypeStrings) {
                 config.deviceTypes.push_back(DeviceCalculator::StringToDeviceType(deviceTypeStr));
+                if (std::find(config.deviceTypeNames.begin(), config.deviceTypeNames.end(), deviceTypeStr) ==
+                    config.deviceTypeNames.end()) {
+                    config.deviceTypeNames.push_back(deviceTypeStr);
+                }
             }
             // Remove premature judgment, judge after processing requiredDeviceFeatures
         }
@@ -111,6 +115,10 @@ ModuleConfig ModuleCalculator::ExtractModuleConfig(
                     config.deviceTypes.end()) {
                     config.deviceTypes.push_back(normalized);
                 }
+                if (std::find(config.deviceTypeNames.begin(), config.deviceTypeNames.end(), deviceType) ==
+                    config.deviceTypeNames.end()) {
+                    config.deviceTypeNames.push_back(deviceType);
+                }
             }
         }
 
@@ -140,6 +148,11 @@ bool ModuleCalculator::IsValidForDedup(const ModuleConfig& moduleConfig)
     bool supportedType = moduleConfig.bundleType == "app" || moduleConfig.bundleType == "atomicService";
     return moduleConfig.stageModel && !moduleConfig.moduleName.empty() && supportedType &&
         moduleConfig.deviceTypesConfigured && moduleConfig.deliveryWithInstallPresent;
+}
+
+bool ModuleCalculator::IsValidForInterAppDedup(const ModuleConfig& moduleConfig)
+{
+    return moduleConfig.stageModel && !moduleConfig.moduleName.empty() && moduleConfig.deviceTypesConfigured;
 }
 
 bool ModuleCalculator::SupportsDeviceType(const ModuleConfig& moduleConfig, DeviceType deviceType)

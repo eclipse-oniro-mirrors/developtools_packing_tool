@@ -72,6 +72,8 @@ public class Utility {
     private String signaturePath = "";
     private String forceRewrite = "false";
     private String deduplicateSo = "false";
+    private String deduplistSdkPath = "";
+    private boolean deduplistSdkPathSpecified = false;
     private String outPath = "";
     private String packInfoPath = "";
     private String replacePackInfo = "";
@@ -455,6 +457,21 @@ public class Utility {
     public void setDeduplicateSo(String deduplicateSo) {
         if (!deduplicateSo.startsWith(CMD_PREFIX)) {
             this.deduplicateSo = deduplicateSo;
+        }
+    }
+
+    public String getDeduplistSdkPath() {
+        return deduplistSdkPath;
+    }
+
+    public boolean isDeduplistSdkPathSpecified() {
+        return deduplistSdkPathSpecified;
+    }
+
+    public void setDeduplistSdkPath(String deduplistSdkPath) {
+        this.deduplistSdkPathSpecified = true;
+        if (!deduplistSdkPath.startsWith(CMD_PREFIX)) {
+            this.deduplistSdkPath = deduplistSdkPath;
         }
     }
 
