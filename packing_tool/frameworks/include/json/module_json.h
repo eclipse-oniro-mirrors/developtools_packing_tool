@@ -121,6 +121,9 @@ public:
     bool GetExtensionAbilityNames(std::list<std::string>& extensionAbilityNames);
     bool GetExtensionAbilityNamesByModuleObj(std::unique_ptr<PtJson>& moduleObj,
         std::list<std::string>& extensionAbilityNames);
+    bool GetStageHasDriverExtensionAbility(bool& hasDriverExtensionAbility);
+    bool GetStageHasDriverExtensionAbilityByModuleObj(std::unique_ptr<PtJson>& moduleObj,
+        bool& hasDriverExtensionAbility);
     bool GetModuleMetadatas(std::list<ModuleMetadataInfo>& moduleMetadataInfos,
         const std::map<std::string, std::string>& resourceMap);
     bool GetModuleMetadatasByModuleObj(std::unique_ptr<PtJson>& moduleObj,

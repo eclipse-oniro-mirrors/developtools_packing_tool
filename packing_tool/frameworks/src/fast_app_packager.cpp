@@ -757,9 +757,16 @@ bool FastAppPackager::CompressFastAppMode()
         SODeduplicator soDeduplicator;
         bool deduplicateSo = parameterMap_.find(Constants::PARAM_DEDUPLICATE_SO) != parameterMap_.end() &&
             parameterMap_.at(Constants::PARAM_DEDUPLICATE_SO) == Constants::TRUE_STRING;
-        if (!soDeduplicator.DeduplicateModules(fileList, originalModulePaths, deduplicateSo, tmpDir.string(),
+        std::map<std::string, std::string>::const_iterator dedupListIt =
+            parameterMap_.find(Constants::PARAM_DEDUPLIST_SDK_PATH);
+        std::string interAppDedupListPath =
+            (dedupListIt == parameterMap_.end()) ? std::string() : dedupListIt->second;
+        if (!soDeduplicator.DeduplicateModules(fileList, originalModulePaths,
+            DedupSwitch{deduplicateSo, interAppDedupListPath}, tmpDir.string(),
             appOutPath.parent_path().string())) {
-            LOGE("%s", PackingToolErrMsg::SO_DEDUPLICATION_FAILED.toStringWithArgs(
+            LOGE("%s", (soDeduplicator.IsInterAppFailure()
+                ? PackingToolErrMsg::SO_DEDUPLICATION_FOR_SDK_FAILED
+                : PackingToolErrMsg::SO_DEDUPLICATION_FAILED).toStringWithArgs(
                 soDeduplicator.GetErrorMessage()).c_str());
             return false;
         }

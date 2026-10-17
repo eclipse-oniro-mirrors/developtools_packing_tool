@@ -466,4 +466,89 @@ HWTEST_F(PackagerTest, CheckStatDuplicateFlag_000, Function | MediumTest | Level
     OHOS::AppPackingTool::HapPackager packager(parameterMap, resultReceiver);
     EXPECT_FALSE(packager.CheckStatDuplicateFlag());
 }
+
+/*
+ * @tc.name: CheckDeduplistSdkPath_0100
+ * @tc.desc: CheckDeduplistSdkPath accepts an existing .json file.
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(PackagerTest, CheckDeduplistSdkPath_0100, Function | MediumTest | Level1)
+{
+    std::string resultReceiver;
+    std::filesystem::path deduplistPath =
+        std::filesystem::temp_directory_path() / "packager_test_deduplist_sdk.json";
+    std::ofstream deduplistFile(deduplistPath, std::ios::trunc);
+    deduplistFile << "{}";
+    deduplistFile.close();
+    ASSERT_TRUE(std::filesystem::is_regular_file(deduplistPath));
+
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_DEDUPLIST_SDK_PATH, deduplistPath.string()},
+    };
+
+    OHOS::AppPackingTool::HapPackager packager(parameterMap, resultReceiver);
+    EXPECT_TRUE(packager.CheckDeduplistSdkPath());
+    std::filesystem::remove(deduplistPath);
+}
+
+/*
+ * @tc.name: CheckDeduplistSdkPath_0200
+ * @tc.desc: CheckDeduplistSdkPath is optional and mode independent: an empty value, a non json
+ *           suffix and a missing file are rejected, while an absent parameter is accepted.
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(PackagerTest, CheckDeduplistSdkPath_0200, Function | MediumTest | Level1)
+{
+    std::string resultReceiver;
+    std::filesystem::path wrongSuffixPath =
+        std::filesystem::temp_directory_path() / "packager_test_deduplist_sdk.txt";
+    std::ofstream wrongSuffixFile(wrongSuffixPath, std::ios::trunc);
+    wrongSuffixFile << "{}";
+    wrongSuffixFile.close();
+    ASSERT_TRUE(std::filesystem::is_regular_file(wrongSuffixPath));
+
+    std::map<std::string, std::string> emptyMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_DEDUPLIST_SDK_PATH, ""},
+    };
+    OHOS::AppPackingTool::HapPackager emptyPackager(emptyMap, resultReceiver);
+    EXPECT_FALSE(emptyPackager.CheckDeduplistSdkPath());
+
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_DEDUPLIST_SDK_PATH, wrongSuffixPath.string()},
+    };
+    OHOS::AppPackingTool::HapPackager wrongSuffixPackager(parameterMap, resultReceiver);
+    EXPECT_FALSE(wrongSuffixPackager.CheckDeduplistSdkPath());
+
+    std::map<std::string, std::string> missingMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_DEDUPLIST_SDK_PATH,
+            (std::filesystem::temp_directory_path() / "packager_test_missing_deduplist.json").string()},
+    };
+    OHOS::AppPackingTool::HapPackager missingPackager(missingMap, resultReceiver);
+    EXPECT_FALSE(missingPackager.CheckDeduplistSdkPath());
+
+    std::map<std::string, std::string> absentMap;
+    OHOS::AppPackingTool::HapPackager absentPackager(absentMap, resultReceiver);
+    EXPECT_TRUE(absentPackager.CheckDeduplistSdkPath());
+    std::filesystem::remove(wrongSuffixPath);
+}
+
+/*
+ * @tc.name: CheckDeduplistSdkPath_0300
+ * @tc.desc: MakePackage validates a provided --deduplist-sdk-path in every mode; the empty value is
+ *           rejected without a mode restriction.
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(PackagerTest, CheckDeduplistSdkPath_0300, Function | MediumTest | Level1)
+{
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_DEDUPLIST_SDK_PATH, ""},
+    };
+
+    OHOS::AppPackingTool::HapPackager packager(parameterMap, resultReceiver);
+    EXPECT_EQ(packager.MakePackage(), AppPackingTool::ERR_INVALID_VALUE);
+}
 } // namespace OHOS

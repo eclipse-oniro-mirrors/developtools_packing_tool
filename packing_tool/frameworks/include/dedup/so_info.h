@@ -31,6 +31,7 @@ struct SoInfo {
     std::string md5;          // MD5值
     std::string sourceModule; // Internal module instance ID
     int64_t fileSize;         // 文件大小（字节）
+    std::string sha256;       // SHA-256 value used for inter-app dedup matching
 
     bool operator==(const SoInfo& other) const
     {

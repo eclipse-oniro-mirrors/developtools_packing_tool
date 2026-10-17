@@ -32,9 +32,12 @@ ohos_unittest("so_deduplicator_test") {
   module_out_path = module_output_path
   public_configs = [ ":so_deduplicator_test_config" ]
   sources = [
+    "../../../../src/dedup/deduplist_sdk_parser.cpp",
     "../../../../src/dedup/device_calculator.cpp",
     "../../../../src/dedup/exact_solver.cpp",
     "../../../../src/dedup/greedy_solver.cpp",
+    "../../../../src/dedup/inter_app_dedup_solver.cpp",
+    "../../../../src/dedup/inter_app_deduplicator.cpp",
     "../../../../src/dedup/module_calculator.cpp",
     "../../../../src/dedup/report_generator.cpp",
     "../../../../src/dedup/so_deduplicator.cpp",
@@ -43,6 +46,7 @@ ohos_unittest("so_deduplicator_test") {
     "../../../../src/error/scan_error_enum.cpp",
     "../../../../src/json/distro_filter.cpp",
     "../../../../src/json/hap_verify_info.cpp",
+    "../../../../src/json/json_utils.cpp",
     "../../../../src/json/module_json.cpp",
     "../../../../src/json/module_json_fa.cpp",
     "../../../../src/json/module_json_stage.cpp",

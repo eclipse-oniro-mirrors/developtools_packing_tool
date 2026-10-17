@@ -41,17 +41,20 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -78,6 +81,8 @@ final class SODeduplicator {
     private static final String APP = "app";
     private static final String ATOMIC_SERVICE = "atomicService";
     private static final String REPORT_NAME = "so_dedup_report.json";
+    private static final String DEDUP_RESULT_FILE = "dedupfiles.json";
+    private static final String LIBS_PREFIX = "libs/";
     private static final int EXACT_THRESHOLD = 20;
     private static final int BUFFER_SIZE = 8192;
     private static final Pattern SO_PATTERN = Pattern.compile(".*\\.so(\\.\\d+)*$", Pattern.CASE_INSENSITIVE);
@@ -87,13 +92,48 @@ final class SODeduplicator {
     private SODeduplicator() {
     }
 
+    static final class DedupSwitch {
+        private final boolean deduplicateSo;
+        private final String interAppDedupListPath;
+
+        DedupSwitch(boolean deduplicateSo, String interAppDedupListPath) {
+            this.deduplicateSo = deduplicateSo;
+            this.interAppDedupListPath = interAppDedupListPath == null ? "" : interAppDedupListPath;
+        }
+
+        private boolean isInterAppEnabled() {
+            return !interAppDedupListPath.isEmpty();
+        }
+    }
+
     private static void logDedupError(String cause) {
         LOG.error(PackingToolErrMsg.SO_DEDUPLICATION_FAILED.toString(cause));
     }
 
+    private static String formatInterAppDedupError(String cause) {
+        String message = PackingToolErrMsg.SO_DEDUPLICATION_FOR_SDK_FAILED.toString(cause);
+        LOG.error(message);
+        return message;
+    }
+
+    /**
+     * Two stage intra-app and inter-app deduplication (unified repack).
+     *
+     * Stage one runs intra-app deduplication when the switch is on, stage two runs inter-app
+     * deduplication per module when the deduplist path is set; both exclusion sets are merged at
+     * repack so a given .so is removed only once. Either switch enables deduplication.
+     *
+     * @param modulePaths module package paths, replaced by the repacked packages
+     * @param originalModulePaths module package paths as given by the caller
+     * @param dedupSwitch deduplication switches and the inter-app deduplist path
+     * @param workDir temporary working directory
+     * @param reportDir directory receiving the deduplication report
+     * @return the module package paths after deduplication
+     * @throws BundleException when the module path count does not match or repacking fails
+     */
     static List<String> deduplicateModules(List<String> modulePaths, List<String> originalModulePaths,
-                                           boolean deduplicateSo, Path workDir,
-                                           Path reportDir) throws BundleException {
+                                           DedupSwitch dedupSwitch, Path workDir, Path reportDir)
+            throws BundleException {
         if (modulePaths == null) {
             return new ArrayList<>();
         }
@@ -103,21 +143,38 @@ final class SODeduplicator {
         if (modulePaths.isEmpty()) {
             return modulePaths;
         }
-        if (!deduplicateSo) {
+        if (!dedupSwitch.deduplicateSo) {
             LOG.info("SO deduplication skipped: disabled.");
+        }
+        if (!dedupSwitch.isInterAppEnabled()) {
+            LOG.info("SO deduplication for sdk skipped: disabled.");
+        }
+        if (!dedupSwitch.deduplicateSo && !dedupSwitch.isInterAppEnabled()) {
             return modulePaths;
         }
         try {
-            LOG.info("SO deduplication started.");
             Path modulesRoot = Files.createTempDirectory(workDir, "so_dedup_modules_");
             Path repackedRoot = Files.createTempDirectory(workDir, "so_dedup_repacked_");
             List<ModuleRecord> modules = extractModules(modulePaths, originalModulePaths, modulesRoot, repackedRoot);
-            DedupResult result = deduplicateExtractedModules(modules);
-            writeReport(result, reportDir);
-            List<String> repacked = repackModules(modules, result);
-            String reportPath = reportDir == null ? "" : reportDir.resolve(REPORT_NAME).toString();
-            LOG.warning("SO deduplication completed: removed=" + result.removedRecords.size()
-                    + ", savedBytes=" + result.totalSavedSize + ", report=" + reportPath);
+            // The intra-app stage caches the sha256 computed together with the md5 in a single read
+            Map<String, Map<String, String>> soSha256Cache = new HashMap<>();
+            DedupResult result = new DedupResult();
+            if (dedupSwitch.deduplicateSo) {
+                result = deduplicateExtractedModules(modules, soSha256Cache, dedupSwitch.isInterAppEnabled());
+                writeReport(result, reportDir);
+            }
+            Map<String, Set<String>> intraAppRemoved = collectRemovedPaths(result);
+            InterAppMergeResult interApp = new InterAppMergeResult();
+            if (dedupSwitch.isInterAppEnabled()) {
+                interApp = mergeInterAppDedup(modules, dedupSwitch.interAppDedupListPath, soSha256Cache,
+                        intraAppRemoved);
+            }
+            List<String> repacked = repackModules(modules, intraAppRemoved, interApp.excluded, interApp.resultJson);
+            if (dedupSwitch.deduplicateSo) {
+                String reportPath = reportDir == null ? "" : reportDir.resolve(REPORT_NAME).toString();
+                LOG.warning("SO deduplication completed: removed=" + result.removedRecords.size()
+                        + ", savedBytes=" + result.totalSavedSize + ", report=" + reportPath);
+            }
             return repacked;
         } catch (IOException exception) {
             String errMsg = "SO deduplication error: " + exception.getMessage();
@@ -147,7 +204,9 @@ final class SODeduplicator {
         return modules;
     }
 
-    private static DedupResult deduplicateExtractedModules(List<ModuleRecord> modules) throws IOException {
+    private static DedupResult deduplicateExtractedModules(List<ModuleRecord> modules,
+            Map<String, Map<String, String>> soSha256Cache, boolean collectSha256) throws IOException {
+        LOG.info("SO deduplication started.");
         List<ModuleRecord> eligibleModules = new ArrayList<>();
         List<ModuleRecord> validModules = new ArrayList<>();
         for (ModuleRecord module : modules) {
@@ -172,16 +231,15 @@ final class SODeduplicator {
         for (ModuleRecord module : eligibleModules) {
             moduleConfigs.put(module.moduleId, module.config);
         }
-        Map<String, List<SoRecord>> groups = collectDuplicateGroups(eligibleModules);
+        Map<String, List<SoRecord>> groups = collectDuplicateGroups(eligibleModules, soSha256Cache, collectSha256);
         for (List<SoRecord> group : groups.values()) {
             if (group.size() <= 1) {
                 continue;
             }
             applyDedupForGroup(group, mandatoryModules, moduleConfigs, devices, result);
         }
-        for (SoRecord removed : result.removedRecords) {
-            Files.deleteIfExists(removed.path);
-        }
+        // The intra-app stage only solves; removal happens at the repack stage so that the
+        // inter-app stage still sees every so file of the module.
         return result;
     }
 
@@ -336,43 +394,46 @@ final class SODeduplicator {
         return config.distributionFilter.isEmpty() || config.distributionFilter.equals(device.distributionFilter);
     }
 
-    private static Map<String, List<SoRecord>> collectDuplicateGroups(List<ModuleRecord> modules) throws IOException {
+    private static Map<String, List<SoRecord>> collectDuplicateGroups(List<ModuleRecord> modules,
+            Map<String, Map<String, String>> soSha256Cache, boolean collectSha256) throws IOException {
         Map<String, List<SoRecord>> groups = new HashMap<>();
         for (ModuleRecord module : modules) {
             Path libsPath = module.extractDir.resolve(LIBS_DIR);
             if (!Files.exists(libsPath)) {
                 continue;
             }
-            collectSoFiles(groups, module, libsPath);
+            collectSoFiles(groups, module, libsPath, soSha256Cache, collectSha256);
         }
         return groups;
     }
 
     private static void collectSoFiles(final Map<String, List<SoRecord>> groups, final ModuleRecord module,
-                                       Path libsPath) throws IOException {
+                                       Path libsPath, Map<String, Map<String, String>> soSha256Cache,
+                                       boolean collectSha256) throws IOException {
         Files.walkFileTree(libsPath, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 if (isSoFile(file.getFileName().toString())) {
-                    addSoRecord(groups, module, file);
+                    addSoRecord(groups, module, file, soSha256Cache, collectSha256);
                 }
                 return FileVisitResult.CONTINUE;
             }
         });
     }
 
-    private static void addSoRecord(Map<String, List<SoRecord>> groups, ModuleRecord module, Path path)
+    private static void addSoRecord(Map<String, List<SoRecord>> groups, ModuleRecord module, Path path,
+                                    Map<String, Map<String, String>> soSha256Cache, boolean collectSha256)
             throws IOException {
-        String md5;
-        try {
-            md5 = calculateMd5(path);
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IOException("Calculate SO MD5 failed: " + path + ", " + exception.getMessage(), exception);
-        }
+        // Both digests are computed from a single read so the inter-app stage does not read the file again
+        SoDigests digests = calculateDigests(path, collectSha256);
         Path relative = module.extractDir.relativize(path);
+        String relativePath = relative.toString().replace('\\', '/');
         SoRecord so = new SoRecord(module.moduleId, module.config.moduleName, module.reportPath,
-                relative.toString().replace('\\', '/'), path, Files.size(path));
-        groups.computeIfAbsent(so.relativePath + '\n' + md5, key -> new ArrayList<>()).add(so);
+                relativePath, path, Files.size(path));
+        groups.computeIfAbsent(so.relativePath + '\n' + digests.md5, key -> new ArrayList<>()).add(so);
+        if (digests.sha256 != null) {
+            soSha256Cache.computeIfAbsent(module.moduleId, key -> new HashMap<>()).put(relativePath, digests.sha256);
+        }
     }
 
     private static boolean isSoFile(String fileName) {
@@ -408,6 +469,7 @@ final class SODeduplicator {
         JSONObject app = root == null ? null : root.getJSONObject("app");
         JSONObject module = root == null ? null : root.getJSONObject(MODULE);
         ModuleConfig config = new ModuleConfig();
+        config.packContext = root == null ? null : InterAppDedupSolver.buildPackContext(root);
         if (module == null) {
             return config;
         }
@@ -455,22 +517,29 @@ final class SODeduplicator {
         }
     }
 
-    private static List<String> repackModules(List<ModuleRecord> modules, DedupResult result) throws IOException {
+    private static List<String> repackModules(List<ModuleRecord> modules, Map<String, Set<String>> intraAppRemoved,
+            Map<String, Set<String>> interAppExcluded, Map<String, String> interAppResultJson)
+            throws IOException {
         List<String> repacked = new ArrayList<>();
         for (ModuleRecord module : modules) {
+            // Intra-app and inter-app removals are merged, so each .so is removed only once
             Set<String> removedPaths = new HashSet<>();
-            for (SoRecord removed : result.removedRecords) {
-                if (removed.moduleId.equals(module.moduleId)) {
-                    removedPaths.add(removed.relativePath);
-                }
+            Set<String> intraAppPaths = intraAppRemoved.get(module.moduleId);
+            if (intraAppPaths != null) {
+                removedPaths.addAll(intraAppPaths);
             }
-            copyModuleEntries(module, removedPaths);
+            Set<String> interAppPaths = interAppExcluded.get(module.moduleId);
+            if (interAppPaths != null) {
+                removedPaths.addAll(interAppPaths);
+            }
+            copyEntriesWithExclusions(module, removedPaths, interAppResultJson.get(module.moduleId));
             repacked.add(module.repackedPath.toString());
         }
         return repacked;
     }
 
-    private static void copyModuleEntries(ModuleRecord module, Set<String> removedPaths) throws IOException {
+    private static void copyEntriesWithExclusions(ModuleRecord module, Set<String> removedPaths, String resultJson)
+            throws IOException {
         Files.createDirectories(module.repackedPath.getParent());
         try (org.apache.commons.compress.archivers.zip.ZipFile source =
                 new org.apache.commons.compress.archivers.zip.ZipFile(new File(module.sourcePath));
@@ -486,6 +555,212 @@ final class SODeduplicator {
                     target.addRawArchiveEntry(new ZipArchiveEntry(entry), rawInput);
                 }
             }
+            if (resultJson != null && !resultJson.isEmpty()) {
+                writeStringEntry(target, DEDUP_RESULT_FILE, resultJson);
+            }
+        }
+    }
+
+    private static void writeStringEntry(ZipArchiveOutputStream target, String entryName, String content)
+            throws IOException {
+        ZipArchiveEntry entry = new ZipArchiveEntry(entryName);
+        target.putArchiveEntry(entry);
+        target.write(content.getBytes(StandardCharsets.UTF_8));
+        target.closeArchiveEntry();
+    }
+
+    private static DedupListSdkParser parseDedupList(String interAppDedupListPath) throws BundleException {
+        DedupListSdkParser dedupList = new DedupListSdkParser();
+        if (!dedupList.parseFile(interAppDedupListPath)) {
+            String errMsg = "failed to parse deduplist sdk: " + dedupList.getErrorMessage();
+            throw new BundleException(formatInterAppDedupError(errMsg));
+        }
+        return dedupList;
+    }
+
+    /**
+     * Runs inter-app deduplication for the whole package and merges the results into the
+     * exclusion set.
+     *
+     * Application level gates (driver / version) are aggregated over all modules and evaluated
+     * once; when a gate fails the whole package skips inter-app deduplication. The device type gate
+     * is evaluated per module while solving, and each module matches compatibility groups with its
+     * own compatibleSdkVersion.
+     *
+     * @param modules extracted module records; only modules with a parseable
+     *                configuration (non-FA models) participate in deduplication
+     * @param interAppDedupListPath path of the inter-app deduplication list (deduplist sdk)
+     * @param soSha256Cache map from module ID to the "SO relative path -> sha256" cache,
+     *                      shared with the intra-app deduplication stage
+     * @param intraAppRemoved map from module ID to the set of SO relative paths already
+     *                        removed by intra-app deduplication
+     * @return the merged deduplication result, containing the excluded SO paths and the per-module
+     *         deduplication result JSON; an empty result is returned when the gate check fails
+     * @throws BundleException if the inter-app deduplication list cannot be parsed
+     */
+    private static InterAppMergeResult mergeInterAppDedup(List<ModuleRecord> modules,
+            String interAppDedupListPath, Map<String, Map<String, String>> soSha256Cache,
+            Map<String, Set<String>> intraAppRemoved) throws BundleException {
+        LOG.info("SO deduplication for sdk started.");
+        InterAppDedupSolver.GateContext appGateContext = new InterAppDedupSolver.GateContext();
+        List<ModuleRecord> participatingModules = new ArrayList<>();
+        for (ModuleRecord module : modules) {
+            InterAppDedupSolver.PackContext packContext = module.config.packContext;
+            // FA models or modules whose configuration failed to parse do not participate
+            if (packContext == null || !packContext.isApplicable()) {
+                continue;
+            }
+            InterAppDedupSolver.mergeGateContext(appGateContext, packContext.getGateContext());
+            participatingModules.add(module);
+        }
+        InterAppDedupSolver solver = new InterAppDedupSolver();
+        StringBuilder skipReason = new StringBuilder();
+        DedupListSdkParser dedupList = parseDedupList(interAppDedupListPath);
+        if (!solver.checkGates(appGateContext, dedupList, skipReason)) {
+            LOG.info("So deduplication for sdk skipped: " + skipReason);
+            return new InterAppMergeResult();
+        }
+        InterAppMergeResult mergeResult = new InterAppMergeResult();
+        InterAppMergeContext mergeContext = new InterAppMergeContext(solver, dedupList, soSha256Cache,
+                intraAppRemoved, mergeResult);
+        int matchedModules = 0;
+        for (ModuleRecord module : participatingModules) {
+            if (mergeModulePlan(module, mergeContext)) {
+                matchedModules++;
+            }
+        }
+        LOG.info("Inter-app deduplication merged for " + matchedModules + " module(s).");
+        return mergeResult;
+    }
+
+    private static boolean mergeModulePlan(ModuleRecord module, InterAppMergeContext mergeContext)
+            throws BundleException {
+        // A hap/hsp that already carries the dedup result file was deduplicated before: keep it as is
+        if (hasDedupResultFile(module.sourcePath)) {
+            LOG.info("So deduplication for sdk skipped for module " + module.sourcePath
+                    + ": " + DEDUP_RESULT_FILE + " already exists");
+            return false;
+        }
+        InterAppDedupSolver.PackContext packContext = module.config.packContext;
+        InterAppDedupSolver.ModuleCandidate candidate = collectModuleCandidate(
+                module.extractDir.resolve(LIBS_DIR).toString(), packContext,
+                mergeContext.soSha256Cache.get(module.moduleId), mergeContext.intraAppRemoved.get(module.moduleId));
+        InterAppDedupSolver.Plan plan = mergeContext.solver.solve(packContext.getGateContext(),
+                Collections.singletonList(candidate), mergeContext.dedupList);
+        if (!plan.isApplied() || plan.getRemovedSos().isEmpty()) {
+            return false;
+        }
+        Set<String> excluded = mergeContext.mergeResult.excluded.computeIfAbsent(module.moduleId,
+                key -> new LinkedHashSet<>());
+        for (InterAppDedupSolver.RemovedSo removed : plan.getRemovedSos()) {
+            excluded.add(removed.getRelativePath());
+        }
+        String resultJson = InterAppDedupSolver.generateResultJson(plan.getRemovedSos());
+        if (resultJson == null || resultJson.isEmpty()) {
+            throw new BundleException(formatInterAppDedupError(
+                "Inter-app deduplication failed for module: " + module.reportPath
+                + ", failed to generate inter-app dedup result json"));
+        }
+        mergeContext.mergeResult.resultJson.put(module.moduleId, resultJson);
+        return true;
+    }
+
+    /**
+     * Module instance id -> package relative paths already removed by the intra-app stage; the inter-app
+     * stage skips them so nothing is processed or recorded twice.
+     *
+     * @param result intra-app deduplication result carrying the removed so records
+     * @return removed package relative paths grouped by module instance id
+     */
+    private static Map<String, Set<String>> collectRemovedPaths(DedupResult result) {
+        Map<String, Set<String>> removedByIntraApp = new HashMap<>();
+        for (SoRecord removed : result.removedRecords) {
+            removedByIntraApp.computeIfAbsent(removed.moduleId, key -> new HashSet<>()).add(removed.relativePath);
+        }
+        return removedByIntraApp;
+    }
+
+    private static boolean hasDedupResultFile(String packagePath) {
+        if (packagePath == null || packagePath.isEmpty() || !new File(packagePath).isFile()) {
+            return false;
+        }
+        try (org.apache.commons.compress.archivers.zip.ZipFile source =
+                new org.apache.commons.compress.archivers.zip.ZipFile(new File(packagePath))) {
+            return source.getEntry(DEDUP_RESULT_FILE) != null;
+        } catch (IOException exception) {
+            LOG.warning("Failed to inspect " + packagePath + " for " + DEDUP_RESULT_FILE + ": "
+                    + exception.getMessage());
+            return false;
+        }
+    }
+
+    private static InterAppDedupSolver.ModuleCandidate collectModuleCandidate(String libDir,
+            InterAppDedupSolver.PackContext packContext, Map<String, String> cachedSha256,
+            Set<String> removedByIntraApp) {
+        InterAppDedupSolver.ModuleContext moduleContext = packContext.getModuleContext();
+        InterAppDedupSolver.GateContext gateContext = packContext.getGateContext();
+        String moduleName = moduleContext.getModuleName();
+        InterAppDedupSolver.ModuleCandidate candidate = new InterAppDedupSolver.ModuleCandidate(
+                moduleName.isEmpty() ? libDir : moduleName, moduleContext);
+        candidate.setMatchApiVersion(gateContext.getApiVersion());
+        Path libPath = Paths.get(libDir);
+        if (!Files.isDirectory(libPath)) {
+            return candidate;
+        }
+        File[] abiDirs = libPath.toFile().listFiles(File::isDirectory);
+        if (abiDirs == null) {
+            return candidate;
+        }
+        for (File abiDir : abiDirs) {
+            collectSoCandidates(abiDir, abiDir.getName(), cachedSha256, removedByIntraApp, candidate);
+        }
+        return candidate;
+    }
+
+    /**
+     * Collects the so candidates of one abi directory. The so may sit under any sub directory of
+     * libs/&lt;abi&gt;; the complete package relative path is kept so the result file records where the
+     * removed so originally was.
+     *
+     * @param abiDir directory of one abi under the libs directory
+     * @param abi name of the abi, used to build the package relative path of each so
+     * @param cachedSha256 map from so relative path to its sha256; may be null, in which case
+     *                     the digest is computed from the file
+     * @param removedByIntraApp set of so relative paths already removed by intra-app deduplication;
+     *                          may be null, such entries are skipped and never hashed or recorded
+     * @param candidate module candidate the collected so entries are added to
+     */
+    private static void collectSoCandidates(File abiDir, String abi, Map<String, String> cachedSha256,
+            Set<String> removedByIntraApp, InterAppDedupSolver.ModuleCandidate candidate) {
+        Path abiPath = abiDir.toPath();
+        List<Path> soPaths = new ArrayList<>();
+        try (Stream<Path> stream = Files.walk(abiPath)) {
+            stream.filter(Files::isRegularFile).forEach(soPaths::add);
+        } catch (IOException exception) {
+            LOG.warning("Failed to walk lib directory " + abiPath + ": " + exception.getMessage());
+            return;
+        }
+        for (Path soPath : soPaths) {
+            String soName = soPath.getFileName().toString();
+            if (!isSoFile(soName)) {
+                continue;
+            }
+            String subPath = abiPath.relativize(soPath).toString().replace('\\', '/');
+            String relativePath = LIBS_PREFIX + abi + "/" + subPath;
+            // Already removed by the intra-app stage: skip it so it is not hashed, matched or recorded again
+            if (removedByIntraApp != null && removedByIntraApp.contains(relativePath)) {
+                continue;
+            }
+            String sha256 = cachedSha256 == null ? null : cachedSha256.get(relativePath);
+            if (sha256 == null || sha256.isEmpty()) {
+                // Read the file only when the intra-app stage did not cache its sha256
+                sha256 = FileUtils.getSha256(soPath.toString());
+            }
+            if (sha256.isEmpty()) {
+                LOG.warning("Failed to calculate sha256 for " + soPath);
+                continue;
+            }
+            candidate.addSo(new InterAppDedupSolver.SoCandidate(soName, abi, relativePath, sha256));
         }
     }
 
@@ -536,17 +811,39 @@ final class SODeduplicator {
         }
     }
 
-    private static String calculateMd5(Path path) throws IOException, NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("MD5");
+    private static SoDigests calculateDigests(Path path, boolean withSha256) throws IOException {
+        MessageDigest md5Digest;
+        try {
+            md5Digest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IOException("Calculate SO MD5 failed: " + path + ", " + exception.getMessage(), exception);
+        }
+        MessageDigest sha256Digest = null;
+        if (withSha256) {
+            try {
+                sha256Digest = MessageDigest.getInstance("SHA-256");
+            } catch (NoSuchAlgorithmException exception) {
+                // Leave the cache empty for this file so the inter-app stage falls back to reading it
+                LOG.warning("Failed to calculate sha256 for " + path + ", " + exception.getMessage());
+            }
+        }
         try (InputStream input = Files.newInputStream(path)) {
             byte[] buffer = new byte[BUFFER_SIZE];
             int len;
             while ((len = input.read(buffer)) != -1) {
-                digest.update(buffer, 0, len);
+                md5Digest.update(buffer, 0, len);
+                if (sha256Digest != null) {
+                    sha256Digest.update(buffer, 0, len);
+                }
             }
         }
+        return new SoDigests(toHex(md5Digest.digest()),
+                sha256Digest == null ? null : toHex(sha256Digest.digest()));
+    }
+
+    private static String toHex(byte[] data) {
         StringBuilder builder = new StringBuilder();
-        for (byte value : digest.digest()) {
+        for (byte value : data) {
             builder.append(String.format("%02x", value & 0xff));
         }
         return builder.toString();
@@ -619,6 +916,7 @@ final class SODeduplicator {
         private boolean extractNativeLibs = true;
         private boolean libIsolation = false;
         private String compileSdkType = ""; // "HarmonyOS" 或 "OpenHarmony"
+        private InterAppDedupSolver.PackContext packContext = null;
 
         private boolean isEligible() {
             return isValidForDedup() && (compressNativeLibs || extractNativeLibs) && !libIsolation
@@ -698,6 +996,44 @@ final class SODeduplicator {
             this.relativePath = relativePath;
             this.path = path;
             this.size = size;
+        }
+    }
+
+    // Digests of a single .so file; the sha256 is null when it was not requested or is unavailable
+
+    private static final class SoDigests {
+        private final String md5;
+        private final String sha256;
+
+        private SoDigests(String md5, String sha256) {
+            this.md5 = md5;
+            this.sha256 = sha256;
+        }
+    }
+
+    // Inter-app stage merge result: module instance id -> exclusion paths / dedupfiles.json content
+    private static final class InterAppMergeResult {
+        private final Map<String, Set<String>> excluded = new HashMap<>();
+        private final Map<String, String> resultJson = new HashMap<>();
+    }
+
+    // Immutable inputs of one inter-app merge run, grouped so the per module merge keeps a short
+    // parameter list
+    private static final class InterAppMergeContext {
+        private final InterAppDedupSolver solver;
+        private final DedupListSdkParser dedupList;
+        private final Map<String, Map<String, String>> soSha256Cache;
+        private final Map<String, Set<String>> intraAppRemoved;
+        private final InterAppMergeResult mergeResult;
+
+        private InterAppMergeContext(InterAppDedupSolver solver, DedupListSdkParser dedupList,
+                Map<String, Map<String, String>> soSha256Cache, Map<String, Set<String>> intraAppRemoved,
+                InterAppMergeResult mergeResult) {
+            this.solver = solver;
+            this.dedupList = dedupList;
+            this.soSha256Cache = soSha256Cache;
+            this.intraAppRemoved = intraAppRemoved;
+            this.mergeResult = mergeResult;
         }
     }
 

@@ -47,6 +47,19 @@ const std::string HAP_LIST_WITHOUT_SUFFIX = "/data/test/resource/packingtool/tes
 const std::string HSP_LIST = "/data/test/resource/packingtool/test_file/multiApp/hsp/multiappPackagerHspTest.hsp";
 const std::string HSP_LIST_WITHOUT_SUFFIX = "/data/test/resource/packingtool/test_file/multiApp/hsp/hspTest";
 const std::string APP_LIST = "/data/test/resource/packingtool/test_file/multiApp/hsp/multiappPackagerHspTest.app";
+const std::string DEDUPLIST_SDK_PATH = "/data/test/deduplist_sdk.json";
+// The deduplist sdk file is parsed during packaging, so it must be a parseable json object.
+// The declared dedupMinApiVersion is higher than the api version of the test packages, which
+// keeps inter-app deduplication skipped and the packaged output of this test unchanged.
+const std::string DEDUPLIST_SDK_CONTENT = "{"
+    "\"dedupMinApiVersion\":99,"
+    "\"deviceType\":[\"phone\"],"
+    "\"libraries\":[{"
+        "\"name\":\"libunittest_dedup.so\","
+        "\"abi\":\"arm64-v8a\","
+        "\"99.0.0\":\"0000000000000000000000000000000000000000000000000000000000000000\""
+    "}]"
+"}";
 }
 namespace fs = std::filesystem;
 class MultiAppPackagerTest : public testing::Test {
@@ -91,6 +104,13 @@ void DeleteFile(const std::string& file)
 {
     std::string cmd = "rm -f " + file;
     system(cmd.c_str());
+}
+
+void WriteDeduplistSdkFile()
+{
+    std::ofstream stream(DEDUPLIST_SDK_PATH, std::ios::binary | std::ios::trunc);
+    stream << DEDUPLIST_SDK_CONTENT;
+    stream.close();
 }
 
 class MultiAppVariantsTest : public testing::Test {
@@ -178,15 +198,19 @@ HWTEST_F(MultiAppPackagerTest, MultiAppPackager_0100, Function | MediumTest | Le
         {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
         {OHOS::AppPackingTool::Constants::PARAM_HAP_LIST, HAP_LIST},
         {OHOS::AppPackingTool::Constants::PARAM_HSP_LIST, HSP_LIST},
+        {OHOS::AppPackingTool::Constants::PARAM_DEDUPLIST_SDK_PATH, DEDUPLIST_SDK_PATH},
     };
 
     OHOS::AppPackingTool::MultiAppPackager multiAppPackager(parameterMap, resultReceiver);
     MockMultiAppModuleJsonUtils::MockCheckAppAtomicServiceCompressedSizeValid(true);
     MockMultiAppModuleJsonUtils::MockGetHapVerifyInfosMapfromFileList(true);
+    // The deduplist sdk file must be parseable, an empty file fails the packaging pipeline
+    WriteDeduplistSdkFile();
     EXPECT_EQ(multiAppPackager.InitAllowedParam(), 0);
     EXPECT_EQ(multiAppPackager.PreProcess(), 0);
     EXPECT_EQ(multiAppPackager.Process(), 0);
     EXPECT_EQ(multiAppPackager.PostProcess(), 0);
+    DeleteFile(DEDUPLIST_SDK_PATH);
 }
 
 /*
@@ -236,10 +260,13 @@ HWTEST_F(MultiAppPackagerTest, PreProcess_0300, Function | MediumTest | Level1)
         {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, OUT_PATH},
         {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
         {OHOS::AppPackingTool::Constants::PARAM_HAP_LIST, HAP_LIST},
+        {OHOS::AppPackingTool::Constants::PARAM_DEDUPLIST_SDK_PATH, DEDUPLIST_SDK_PATH},
     };
 
     OHOS::AppPackingTool::MultiAppPackager multiAppPackager(parameterMap, resultReceiver);
+    TouchFile(DEDUPLIST_SDK_PATH);
     EXPECT_EQ(multiAppPackager.PreProcess(), 0);
+    DeleteFile(DEDUPLIST_SDK_PATH);
 }
 
 /*
@@ -274,10 +301,13 @@ HWTEST_F(MultiAppPackagerTest, PreProcess_0500, Function | MediumTest | Level1)
         {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, OUT_PATH},
         {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
         {OHOS::AppPackingTool::Constants::PARAM_HAP_LIST, HAP_LIST},
+        {OHOS::AppPackingTool::Constants::PARAM_DEDUPLIST_SDK_PATH, DEDUPLIST_SDK_PATH},
     };
 
     OHOS::AppPackingTool::MultiAppPackager multiAppPackager(parameterMap, resultReceiver);
+    TouchFile(DEDUPLIST_SDK_PATH);
     EXPECT_EQ(multiAppPackager.PreProcess(), 0);
+    DeleteFile(DEDUPLIST_SDK_PATH);
 }
 
 /*
@@ -313,10 +343,13 @@ HWTEST_F(MultiAppPackagerTest, PreProcess_0700, Function | MediumTest | Level1)
         {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
         {OHOS::AppPackingTool::Constants::PARAM_HAP_LIST, HAP_LIST},
         {OHOS::AppPackingTool::Constants::PARAM_HSP_LIST, ""},
+        {OHOS::AppPackingTool::Constants::PARAM_DEDUPLIST_SDK_PATH, DEDUPLIST_SDK_PATH},
     };
 
     OHOS::AppPackingTool::MultiAppPackager multiAppPackager(parameterMap, resultReceiver);
+    TouchFile(DEDUPLIST_SDK_PATH);
     EXPECT_EQ(multiAppPackager.PreProcess(), 0);
+    DeleteFile(DEDUPLIST_SDK_PATH);
 }
 
 /*
@@ -333,10 +366,13 @@ HWTEST_F(MultiAppPackagerTest, PreProcess_0800, Function | MediumTest | Level1)
         {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
         {OHOS::AppPackingTool::Constants::PARAM_HAP_LIST, HAP_LIST},
         {OHOS::AppPackingTool::Constants::PARAM_HSP_LIST, HSP_LIST},
+        {OHOS::AppPackingTool::Constants::PARAM_DEDUPLIST_SDK_PATH, DEDUPLIST_SDK_PATH},
     };
 
     OHOS::AppPackingTool::MultiAppPackager multiAppPackager(parameterMap, resultReceiver);
+    TouchFile(DEDUPLIST_SDK_PATH);
     EXPECT_EQ(multiAppPackager.PreProcess(), 0);
+    DeleteFile(DEDUPLIST_SDK_PATH);
 }
 
 /*

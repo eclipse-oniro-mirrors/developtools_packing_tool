@@ -18,9 +18,12 @@ import("//build/test.gni")
 group("dedup_tests") {
   testonly = true
   deps = [
+    "deduplist_sdk_parser_test:unittest",
     "device_calculator_test:unittest",
     "exact_solver_test:unittest",
     "greedy_solver_test:unittest",
+    "inter_app_dedup_solver_test:unittest",
+    "inter_app_deduplicator_test:unittest",
     "module_calculator_test:unittest",
     "pack_info_parser_test:unittest",
     "report_generator_test:unittest",

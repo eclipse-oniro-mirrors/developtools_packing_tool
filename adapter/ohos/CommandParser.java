@@ -35,7 +35,15 @@ public class CommandParser {
      */
     public static final String PARSE_MODE_HAPINFO = "hap-info";
 
+    /**
+     * Enables SO deduplication during packaging.
+     */
     public static final String CMD_DEDUPLICATE_SO = "--deduplicate-so";
+
+    /**
+     * Path of the deduplist sdk json used by inter-app SO deduplication.
+     */
+    public static final String CMD_DEDUPLIST_SDK_PATH = "--deduplist-sdk-path";
 
     private static final String CMD_MODE = "--mode";
     private static final String CMD_CONTENTS = "--contents";
@@ -264,6 +272,10 @@ public class CommandParser {
             String value = entry.getValue();
             entry.getKey().setDeduplicateSo(value);
             return Boolean.TRUE.toString().equals(value) || Boolean.FALSE.toString().equals(value);
+        });
+        commandFuncs.put(CMD_DEDUPLIST_SDK_PATH, entry -> {
+            entry.getKey().setDeduplistSdkPath(entry.getValue());
+            return true;
         });
         commandFuncs.put(CMD_OUT_PATH, entry -> {
             entry.getKey().setOutPath(entry.getValue());

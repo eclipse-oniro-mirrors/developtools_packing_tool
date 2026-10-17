@@ -236,6 +236,115 @@ HWTEST_F(ModuleCalculatorTest, IsValidForDedup_RequiredFields, TestSize.Level0) 
     EXPECT_FALSE(OHOS::AppPackingTool::ModuleCalculator::IsValidForDedup(config));
 }
 
+HWTEST_F(ModuleCalculatorTest, IsValidForInterAppDedup_IgnoresBundleTypeAndDeliveryWithInstall, TestSize.Level0) {
+    auto validModule = CreateMockModule("entry", "entry", {"phone"}, false);
+    ASSERT_NE(validModule, nullptr);
+    auto config = OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(validModule);
+    EXPECT_TRUE(OHOS::AppPackingTool::ModuleCalculator::IsValidForInterAppDedup(config));
+    // The declared device type names are kept for the module level device type gate
+    ASSERT_EQ(config.deviceTypeNames.size(), 1U);
+    EXPECT_EQ(config.deviceTypeNames[0], "phone");
+
+    // These two fields exclude the module from the intra-app validity but are not part of the
+    // inter-app module validity
+    config.bundleType = "shared";
+    EXPECT_FALSE(OHOS::AppPackingTool::ModuleCalculator::IsValidForDedup(config));
+    EXPECT_TRUE(OHOS::AppPackingTool::ModuleCalculator::IsValidForInterAppDedup(config));
+
+    config.bundleType = "app";
+    config.deliveryWithInstallPresent = false;
+    EXPECT_FALSE(OHOS::AppPackingTool::ModuleCalculator::IsValidForDedup(config));
+    EXPECT_TRUE(OHOS::AppPackingTool::ModuleCalculator::IsValidForInterAppDedup(config));
+    config.deliveryWithInstallPresent = true;
+
+    config.deviceTypesConfigured = false;
+    EXPECT_FALSE(OHOS::AppPackingTool::ModuleCalculator::IsValidForInterAppDedup(config));
+    config.deviceTypesConfigured = true;
+
+    config.moduleName.clear();
+    EXPECT_FALSE(OHOS::AppPackingTool::ModuleCalculator::IsValidForInterAppDedup(config));
+    config.moduleName = "entry";
+
+    config.stageModel = false;
+    EXPECT_FALSE(OHOS::AppPackingTool::ModuleCalculator::IsValidForInterAppDedup(config));
+}
+
+/**
+ * @tc.name: ExtractModuleConfig_DeviceTypeNamesDedup_0100
+ * @tc.desc: deviceTypeNames 保留声明的设备类型原始名称，重复声明只记录一次，requiredDeviceFeatures
+ *           引入的设备类型与已声明列表合并并同样去重。
+ */
+HWTEST_F(ModuleCalculatorTest, ExtractModuleConfig_DeviceTypeNamesDedup_0100, TestSize.Level0)
+{
+    auto duplicatedModule = CreateMockModule("entry", "entry", {"phone", "phone"});
+    ASSERT_NE(duplicatedModule, nullptr);
+    auto duplicatedConfig =
+        OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(duplicatedModule);
+    // 同一种设备类型声明两次时只保留一条
+    ASSERT_EQ(duplicatedConfig.deviceTypeNames.size(), 1U);
+    EXPECT_EQ(duplicatedConfig.deviceTypeNames[0], "phone");
+    EXPECT_TRUE(duplicatedConfig.deviceTypesConfigured);
+
+    // requiredDeviceFeatures 中的 "phone" 已在 deviceTypes 中，只有 "wearable" 是新设备类型
+    const std::string jsonStr = R"({"app":{"bundleType":"app"},)"
+        R"("module":{"name":"entry","type":"entry","deviceTypes":["phone","tablet"],)"
+        R"("requiredDeviceFeatures":{"phone":["featureA"],"wearable":["featureB"]}}})";
+    auto moduleJson = std::make_shared<OHOS::AppPackingTool::ModuleJson>();
+    ASSERT_TRUE(moduleJson->ParseFromString(jsonStr));
+    auto config = OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(moduleJson);
+    EXPECT_EQ(config.deviceTypeNames.size(), 3U);
+    EXPECT_EQ(std::count(config.deviceTypeNames.begin(), config.deviceTypeNames.end(), "phone"), 1);
+    EXPECT_EQ(std::count(config.deviceTypeNames.begin(), config.deviceTypeNames.end(), "tablet"), 1);
+    EXPECT_EQ(std::count(config.deviceTypeNames.begin(), config.deviceTypeNames.end(), "wearable"), 1);
+    EXPECT_EQ(config.requireDeviceFeatures.size(), 2U);
+    EXPECT_TRUE(config.deviceTypesConfigured);
+}
+
+/**
+ * @tc.name: ExtractModuleConfig_InvalidDistributionFilter_0200
+ * @tc.desc: distributionFilter 元数据无法解析出 profile 时只把 distributionFilterValid 置为 false，
+ *           模块的其余配置仍被提取。
+ */
+HWTEST_F(ModuleCalculatorTest, ExtractModuleConfig_InvalidDistributionFilter_0200, TestSize.Level0)
+{
+    const std::string jsonStr = R"({"app":{"bundleType":"app"},)"
+        R"("module":{"name":"entry","type":"entry","deviceTypes":["phone"],)"
+        R"("metadata":[{"name":"distributionFilter","resource":"$profile:density_filter"}],)"
+        R"("extractNativeLibs":true}})";
+    auto moduleJson = std::make_shared<OHOS::AppPackingTool::ModuleJson>();
+    ASSERT_TRUE(moduleJson->ParseFromString(jsonStr));
+    // 空 resourceMap 解析不出引用的 profile
+    auto config = OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(moduleJson);
+    EXPECT_FALSE(config.distributionFilterValid);
+    EXPECT_EQ(config.moduleName, "entry");
+    EXPECT_TRUE(config.deviceTypesConfigured);
+    EXPECT_TRUE(config.extractNativeLibs);
+}
+
+/**
+ * @tc.name: ExtractModuleConfig_InvalidInputs_0300
+ * @tc.desc: 空 moduleJson、非 Stage 模型和缺少 module 节点的 module.json 都返回空配置。
+ */
+HWTEST_F(ModuleCalculatorTest, ExtractModuleConfig_InvalidInputs_0200, TestSize.Level0)
+{
+    auto emptyConfig = OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(nullptr);
+    EXPECT_FALSE(emptyConfig.stageModel);
+    EXPECT_TRUE(emptyConfig.moduleName.empty());
+    EXPECT_FALSE(emptyConfig.deviceTypesConfigured);
+
+    auto stageModule = CreateMockModule("entry", "entry", {"phone"});
+    ASSERT_NE(stageModule, nullptr);
+    auto faConfig = OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(stageModule, false);
+    EXPECT_FALSE(faConfig.stageModel);
+    EXPECT_TRUE(faConfig.moduleName.empty());
+
+    auto noModuleJson = std::make_shared<OHOS::AppPackingTool::ModuleJson>();
+    ASSERT_TRUE(noModuleJson->ParseFromString(R"({"app":{"bundleType":"app"}})"));
+    auto noModuleConfig = OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(noModuleJson);
+    EXPECT_FALSE(noModuleConfig.stageModel);
+    EXPECT_TRUE(noModuleConfig.moduleName.empty());
+}
+
 HWTEST_F(ModuleCalculatorTest, BundleType_MissingDefaultsToApp, TestSize.Level0)
 {
     const std::string jsonStr = R"({

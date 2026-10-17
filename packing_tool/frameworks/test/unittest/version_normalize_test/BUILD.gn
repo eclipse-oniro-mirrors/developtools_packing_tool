@@ -31,6 +31,12 @@ ohos_unittest("version_normalize_test") {
   module_out_path = module_output_path
   public_configs = [ ":version_normalize_test_config" ]
   sources = [
+    "../../../src/dedup/deduplist_sdk_parser.cpp",
+    "../../../src/dedup/device_calculator.cpp",
+    "../../../src/dedup/inter_app_dedup_solver.cpp",
+    "../../../src/dedup/inter_app_deduplicator.cpp",
+    "../../../src/dedup/module_calculator.cpp",
+    "../../../src/json/distro_filter.cpp",
     "../../../src/error/error_msg.cpp",
     "../../../src/error/packing_tool_err_msg.cpp",
     "../../../src/error/scan_error_enum.cpp",

@@ -75,6 +75,7 @@ const std::string PARAM_RPCID_PATH = "rpcid-path";
 const std::string PARAM_JS_PATH = "js-path";
 const std::string PARAM_FORCE = "force";
 const std::string PARAM_DEDUPLICATE_SO = "deduplicate-so";
+const std::string PARAM_DEDUPLIST_SDK_PATH = "deduplist-sdk-path";
 const std::string PARAM_AN_PATH = "an-path";
 const std::string PARAM_AP_PATH = "ap-path";
 const std::string PARAM_DIR_LIST = "dir-list";
@@ -272,6 +273,7 @@ const struct option LONG_OPTIONS[] = {
     {PARAM_DEDUPLICATE_SO.c_str(), required_argument, nullptr, 66},
     {PARAM_CONTENTS.c_str(), required_argument, nullptr, 67},
     {PARAM_MANIFEST.c_str(), required_argument, nullptr, 68},
+    {PARAM_DEDUPLIST_SDK_PATH.c_str(), required_argument, nullptr, 69},
     {nullptr, 0, nullptr, 0},
 };
 constexpr const int32_t OPTIONS_SIZE = sizeof(LONG_OPTIONS) / sizeof(LONG_OPTIONS[0]);

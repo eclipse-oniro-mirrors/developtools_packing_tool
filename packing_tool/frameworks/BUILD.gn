@@ -45,9 +45,12 @@ ohos_executable("ohos_packing_tool") {
   sources = [
     "src/app_packager.cpp",
     "src/appqf_packager.cpp",
+    "src/dedup/deduplist_sdk_parser.cpp",
     "src/dedup/device_calculator.cpp",
     "src/dedup/exact_solver.cpp",
     "src/dedup/greedy_solver.cpp",
+    "src/dedup/inter_app_dedup_solver.cpp",
+    "src/dedup/inter_app_deduplicator.cpp",
     "src/dedup/module_calculator.cpp",
     "src/dedup/report_generator.cpp",
     "src/dedup/so_deduplicator.cpp",

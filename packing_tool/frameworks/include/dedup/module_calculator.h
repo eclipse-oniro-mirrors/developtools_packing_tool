@@ -33,6 +33,7 @@ struct ModuleConfig {
     std::string bundleType; // "app", "atomicService"
     bool stageModel;
     std::vector<DeviceType> deviceTypes;
+    std::vector<std::string> deviceTypeNames;
     bool deviceTypesConfigured;
     std::string distributionFilter;
     bool distributionFilterValid;
@@ -77,6 +78,15 @@ public:
         const std::map<std::string, std::string>& resourceMap = {});
 
     static bool IsValidForDedup(const ModuleConfig& moduleConfig);
+
+    /**
+     * @brief 判断模块是否满足应用间去重的模块级有效性
+     *
+     * 在应用内去重的有效性基础上去掉 bundleType 与 deliveryWithInstall 判定。
+     * @param moduleConfig 模块配置
+     * @return 是否有效
+     */
+    static bool IsValidForInterAppDedup(const ModuleConfig& moduleConfig);
 
     /**
      * @brief 检查设备的deviceTypes是否包含指定设备类型

@@ -81,6 +81,12 @@ int32_t Packager::MakePackage()
         return ret;
     }
 
+    if (!CheckDeduplistSdkPath()) {
+        LOGE("%s", PackingToolErrMsg::EXECUTE_PACKING_TOOL_FAILED.toStringWithArgs(
+            "Command verify failed.").c_str());
+        return ERR_INVALID_VALUE;
+    }
+
     ret = PreProcess();
     if (ret != ERR_OK) {
         LOGE("%s", PackingToolErrMsg::EXECUTE_PACKING_TOOL_FAILED.toStringWithArgs(
@@ -152,6 +158,17 @@ bool Packager::CheckDeduplicateSoFlag()
         it->second != Constants::TRUE_STRING) {
         LOGE("%s", PackingToolErrMsg::COMMAND_VERIFY_FAILED.toStringWithArgs(
             "--deduplicate-so is invalid, must be 'true' or 'false'.").c_str());
+        return false;
+    }
+    return true;
+}
+
+bool Packager::CheckDeduplistSdkPath()
+{
+    auto it = parameterMap_.find(Constants::PARAM_DEDUPLIST_SDK_PATH);
+    if (it != parameterMap_.end() && !IsPathValid(it->second, true, Constants::JSON_SUFFIX)) {
+        LOGE("%s", PackingToolErrMsg::COMMAND_VERIFY_FAILED.toStringWithArgs(
+            "--deduplist-sdk-path is invalid, must be an existing .json file.").c_str());
         return false;
     }
     return true;

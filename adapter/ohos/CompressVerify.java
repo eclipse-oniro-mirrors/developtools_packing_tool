@@ -132,6 +132,12 @@ public class CompressVerify {
                     "--deduplicate-so is invalid, must be 'true' or 'false'."));
             return false;
         }
+        if (utility.isDeduplistSdkPathSpecified()
+                && !isPathValid(utility.getDeduplistSdkPath(), TYPE_FILE, JSON_SUFFIX)) {
+            LOG.error(PackingToolErrMsg.COMMAND_VERIFY_FAILED.toString(
+                "--deduplist-sdk-path is invalid, must be an existing .json file."));
+            return false;
+        }
         return commandPathVerify(utility);
     }
 

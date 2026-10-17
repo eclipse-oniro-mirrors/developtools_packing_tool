@@ -45,6 +45,19 @@ const std::string PACK_INFO_PATH = TEST_FILE_PATH + std::string("packinfo/pack.i
 const std::string SIGNATURE_PATH = TEST_FILE_PATH + std::string("signature/com.test.apppackagertest.csr");
 const std::string CERTIFICATE_PATH = TEST_FILE_PATH + std::string("certificate/com.test.apppackagertest.p7b");
 const std::string PACK_RES_PATH = TEST_FILE_PATH + std::string("packres/pack.res");
+const std::string DEDUPLIST_SDK_PATH = TEST_PATH + std::string("deduplist_sdk.json");
+// The deduplist sdk file is parsed during packaging, so it must be a parseable json object.
+// The declared dedupMinApiVersion is higher than the api version of the test packages, which
+// keeps inter-app deduplication skipped and the packaged output of these tests unchanged.
+const std::string DEDUPLIST_SDK_CONTENT = "{"
+    "\"dedupMinApiVersion\":99,"
+    "\"deviceType\":[\"phone\"],"
+    "\"libraries\":[{"
+        "\"name\":\"libunittest_dedup.so\","
+        "\"abi\":\"arm64-v8a\","
+        "\"99.0.0\":\"0000000000000000000000000000000000000000000000000000000000000000\""
+    "}]"
+"}";
 const std::string UNPACK_NAME = "unpack";
 const std::string SCAN_RESULT = "scan_result";
 }
@@ -77,6 +90,50 @@ void AppPackagerTest::TearDown()
     system(cmd.c_str());
 }
 
+void WriteDeduplistSdkFile()
+{
+    std::ofstream stream(DEDUPLIST_SDK_PATH, std::ios::binary | std::ios::trunc);
+    stream << DEDUPLIST_SDK_CONTENT;
+    stream.close();
+}
+
+void PackAppAndCheckScanSoReport(std::string& resultReceiver)
+{
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, OHOS::AppPackingTool::Constants::MODE_APP},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_STAT_DUPLICATE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_HAP_PATH, HAP_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_HSP_PATH, HSP_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_PACK_INFO_PATH, PACK_INFO_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_SIGNATURE_PATH, SIGNATURE_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_CERTIFICATE_PATH, CERTIFICATE_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_PACK_RES_PATH, PACK_RES_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_DEDUPLIST_SDK_PATH, DEDUPLIST_SDK_PATH},
+    };
+
+    // The deduplist sdk file must be parseable, an empty file fails the packaging pipeline
+    WriteDeduplistSdkFile();
+    OHOS::AppPackingTool::AppPackager appPackager(parameterMap, resultReceiver);
+    MockModuleJsonUtils::MockCheckAppAtomicServiceCompressedSizeValid(true);
+    MockModuleJsonUtils::MockGetHapVerifyInfosMapfromFileList(true);
+    EXPECT_EQ(appPackager.InitAllowedParam(), ERR_OK);
+    EXPECT_EQ(appPackager.PreProcess(), ERR_OK);
+    EXPECT_EQ(appPackager.Process(), ERR_OK);
+    EXPECT_EQ(appPackager.PostProcess(), ERR_OK);
+    EXPECT_TRUE(fs::exists(OUT_PATH));
+    EXPECT_FALSE(fs::exists(fs::path(REPORT_PATH)));
+    appPackager.ScanSoFiles();
+    ScanStatDuplicate scanStatDuplicate;
+    std::vector<std::string> fileList;
+    fileList = scanStatDuplicate.GetAllInputFileList("", OUT_PATH);
+    EXPECT_EQ(fileList.size(), 0);
+    EXPECT_TRUE(fs::exists(fs::path(REPORT_PATH)));
+    fs::remove_all(REPORT_PATH);
+    system(("rm -f " + DEDUPLIST_SDK_PATH).c_str());
+}
+
 /*
  * @tc.name: InitAllowedParam_0100
  * @tc.desc: InitAllowedParam.
@@ -95,8 +152,11 @@ HWTEST_F(AppPackagerTest, InitAllowedParam_0100, Function | MediumTest | Level1)
         {OHOS::AppPackingTool::Constants::PARAM_SIGNATURE_PATH, SIGNATURE_PATH},
         {OHOS::AppPackingTool::Constants::PARAM_CERTIFICATE_PATH, CERTIFICATE_PATH},
         {OHOS::AppPackingTool::Constants::PARAM_PACK_RES_PATH, PACK_RES_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_DEDUPLIST_SDK_PATH, DEDUPLIST_SDK_PATH},
     };
 
+    // The deduplist sdk file must be parseable, an empty file fails the packaging pipeline
+    WriteDeduplistSdkFile();
     OHOS::AppPackingTool::AppPackager appPackager(parameterMap, resultReceiver);
     MockModuleJsonUtils::MockCheckAppAtomicServiceCompressedSizeValid(true);
     MockModuleJsonUtils::MockGetHapVerifyInfosMapfromFileList(true);
@@ -104,6 +164,7 @@ HWTEST_F(AppPackagerTest, InitAllowedParam_0100, Function | MediumTest | Level1)
     EXPECT_EQ(appPackager.PreProcess(), ERR_OK);
     EXPECT_EQ(appPackager.Process(), ERR_OK);
     EXPECT_EQ(appPackager.PostProcess(), ERR_OK);
+    system(("rm -f " + DEDUPLIST_SDK_PATH).c_str());
 }
 
 /*
@@ -1314,35 +1375,7 @@ HWTEST_F(AppPackagerTest, ScanSoFiles_0100, Function | MediumTest | Level1)
     packager.ScanSoFiles();
     parameterMap[OHOS::AppPackingTool::Constants::PARAM_MODE] = OHOS::AppPackingTool::Constants::MODE_HAP;
     packager.ScanSoFiles();
-    std::map<std::string, std::string> parameterMap1 = {
-        {OHOS::AppPackingTool::Constants::PARAM_MODE, OHOS::AppPackingTool::Constants::MODE_APP},
-        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, OUT_PATH},
-        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
-        {OHOS::AppPackingTool::Constants::PARAM_STAT_DUPLICATE, "true"},
-        {OHOS::AppPackingTool::Constants::PARAM_HAP_PATH, HAP_PATH},
-        {OHOS::AppPackingTool::Constants::PARAM_HSP_PATH, HSP_PATH},
-        {OHOS::AppPackingTool::Constants::PARAM_PACK_INFO_PATH, PACK_INFO_PATH},
-        {OHOS::AppPackingTool::Constants::PARAM_SIGNATURE_PATH, SIGNATURE_PATH},
-        {OHOS::AppPackingTool::Constants::PARAM_CERTIFICATE_PATH, CERTIFICATE_PATH},
-        {OHOS::AppPackingTool::Constants::PARAM_PACK_RES_PATH, PACK_RES_PATH},
-    };
-
-    OHOS::AppPackingTool::AppPackager appPackager(parameterMap1, resultReceiver);
-    MockModuleJsonUtils::MockCheckAppAtomicServiceCompressedSizeValid(true);
-    MockModuleJsonUtils::MockGetHapVerifyInfosMapfromFileList(true);
-    EXPECT_EQ(appPackager.InitAllowedParam(), ERR_OK);
-    EXPECT_EQ(appPackager.PreProcess(), ERR_OK);
-    EXPECT_EQ(appPackager.Process(), ERR_OK);
-    EXPECT_EQ(appPackager.PostProcess(), ERR_OK);
-    EXPECT_TRUE(fs::exists(OUT_PATH));
-    EXPECT_FALSE(fs::exists(fs::path(REPORT_PATH)));
-    appPackager.ScanSoFiles();
-    ScanStatDuplicate scanStatDuplicate;
-    std::vector<std::string> fileList;
-    fileList = scanStatDuplicate.GetAllInputFileList("", OUT_PATH);
-    EXPECT_EQ(fileList.size(), 0);
-    EXPECT_TRUE(fs::exists(fs::path(REPORT_PATH)));
-    fs::remove_all(REPORT_PATH);
+    PackAppAndCheckScanSoReport(resultReceiver);
 }
 
 /*
