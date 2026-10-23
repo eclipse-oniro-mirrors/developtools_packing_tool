@@ -35,7 +35,8 @@
             "keywords",
             "inputParams",
             "outputParams",
-            "entities"
+            "entities",
+            "permissions"
           ]
         },
         "required": [
@@ -195,6 +196,15 @@
           "entities": {
             "description": "Indicates the entities of insightIntent.",
             "type": "object"
+          },
+          "permissions": {
+            "description": "Indicates the permissions required for calling the insightIntent.",
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "maxLength": 255
+            }
           }
         }
       }
