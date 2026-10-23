@@ -71,7 +71,7 @@ int32_t ShellCommand::ParseParam()
     int n = 0;
     while (n < Constants::OPTIONS_SIZE) {
         int32_t option = getopt_long(argc_, argv_, Constants::SHORT_OPTIONS, Constants::LONG_OPTIONS, nullptr);
-        if (optind < 0 || optind > argc_) {
+        if (optind <= 0 || optind > argc_) {
             return ERR_INVALID_VALUE;
         }
         if (option < 0) {
@@ -81,9 +81,16 @@ int32_t ShellCommand::ParseParam()
             return ERR_INVALID_VALUE;
         } else {
             // example: --mode hap
+            if (optarg == nullptr) {
+                resultReceiver_.append("missing argument for param: ")
+                    .append(argv_[optind - 1]).append("\n");
+                return ERR_INVALID_VALUE;
+            }
+            if (optind < OFFSET_REQUIRED_ARGUMENT) {
+                return ERR_INVALID_VALUE;
+            }
             std::string paramName = argv_[optind - OFFSET_REQUIRED_ARGUMENT];
             paramName = paramName.substr(Constants::PARAM_PREFIX.length());
-            std::string paramValue = optarg;
             parameterMap_[paramName] = optarg;
         }
         n++;

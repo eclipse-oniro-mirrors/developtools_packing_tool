@@ -597,11 +597,14 @@ bool MultiAppPackager::PrepareFilesForCompression(std::list<std::string> &fileLi
     isTempHapDirCreated_ = false;
     isTempSelectedHapDirCreated_ = false;
     std::string outPath = parameterMap_.at(Constants::PARAM_OUT_PATH);
-    zipWrapper_.Open(outPath);
-    if (!zipWrapper_.IsOpen()) {
-        LOGE("%s", PackingToolErrMsg::COMPRESS_APP_FAILED.toStringWithArgs(
-            "MultiAppPackager::CompressAppModeForMultiProject: zipWrapper Open failed!").c_str());
-        return false;
+    {
+        zipFile probe = zipOpen64(outPath.c_str(), APPEND_STATUS_CREATE);
+        if (probe == nullptr) {
+            LOGE("%s", PackingToolErrMsg::COMPRESS_APP_FAILED.toStringWithArgs(
+                "MultiAppPackager::PrepareFilesForCompression: create outPath zip failed!").c_str());
+            return false;
+        }
+        zipClose(probe, nullptr);
     }
 
     char path[PATH_MAX] = {0};
@@ -647,7 +650,12 @@ bool MultiAppPackager::PrepareFilesForCompression(std::list<std::string> &fileLi
         finalPackInfoStr = DisposeHapAndHsp(selectedHaps, tempSelectedHapDirPath, finalPackInfoStr);
     }
     if (finalPackInfoStr.empty()) {
-        zipWrapper_.Close();
+        if (fs::exists(tempHapDirPath)) {
+            fs::remove_all(tempHapDirPath);
+        }
+        if (fs::exists(tempSelectedHapDirPath)) {
+            fs::remove_all(tempSelectedHapDirPath);
+        }
         return false;
     }
     finalPackInfoPath = tempSelectedHapDirPath.string() + "/" + Constants::PACK_INFO;
@@ -719,6 +727,12 @@ bool MultiAppPackager::CompressAppModeForMultiProject()
     if (!ModuleJsonUtils::GetHapVerifyInfosMapfromFileList(fileList, hapVerifyInfoMap_)) {
         LOGE("%s", PackingToolErrMsg::CHECK_HAP_INVALID.toStringWithArgs(
             "MultiAppPackager::CompressAppModeForMultiProject GetHapVerifyInfosMapfromFileList failed.").c_str());
+        return false;
+    }
+    std::string outPath = parameterMap_.at(Constants::PARAM_OUT_PATH);
+    if (zipWrapper_.Open(outPath) != ZipErrCode::ZIP_ERR_SUCCESS) {
+        LOGE("%s", PackingToolErrMsg::COMPRESS_APP_FAILED.toStringWithArgs(
+            "MultiAppPackager::CompressAppModeForMultiProject: zipWrapper open failed!").c_str());
         return false;
     }
     for (const auto &hapPath : fileList) {
