@@ -149,6 +149,16 @@ class ModuleInfo {
     public ModuleAtomicService moduleAtomicService = new ModuleAtomicService();
 
     /**
+     * Indicates whether the module.abc file is compressed.
+     */
+    public boolean isModuleAbcCompressed = false;
+
+    /**
+     * Indicates the skillProfiles of ModuleInfo.
+     */
+    public List<SkillProfileInfo> skillProfiles = new ArrayList<>();
+
+    /**
      * Indicates the common events of ModuleInfo.
      */
     List<AbilityFormInfo> abilityFormInfos = new ArrayList<>();
@@ -163,6 +173,16 @@ class ModuleInfo {
      */
     private HashMap<String, String> descriptions = new HashMap<>();
 
+    /**
+     * Indicates the requiredDeviceFeatures
+     */
+    private Map<String, List<String>> requiredDeviceFeatures = new HashMap<>();
+
+    /**
+     * Indicates the anyOfDeviceFeatures
+     */
+    private Map<String, List<String>> anyOfDeviceFeatures = new HashMap<>();
+
     public void setDescriptions(HashMap<String, String> descriptions) {
         this.descriptions = descriptions;
     }
@@ -170,21 +190,6 @@ class ModuleInfo {
     public HashMap<String, String> getDescriptions() {
         return descriptions;
     }
-
-    /**
-     * Indicates whether the module.abc file is compressed.
-     */
-    public boolean isModuleAbcCompressed = false;
-
-    /**
-     * Indicates the skillProfiles of ModuleInfo.
-     */
-    public List<SkillProfileInfo> skillProfiles = new ArrayList<>();
-
-    /**
-     * Indicates the requiredDeviceFeatures
-     */
-    private Map<String, List<String>> requiredDeviceFeatures = new HashMap<>();
 
     /**
      * Get value requiredDeviceFeatures
@@ -198,5 +203,19 @@ class ModuleInfo {
      */
     public void setRequiredDeviceFeatures(Map<String, List<String>> requiredDeviceFeatures) {
         this.requiredDeviceFeatures = requiredDeviceFeatures;
+    }
+
+    /**
+     * Get value anyOfDeviceFeatures
+     */
+    public Map<String, List<String>> getAnyOfDeviceFeatures() {
+        return anyOfDeviceFeatures;
+    }
+
+    /**
+     * Set value anyOfDeviceFeatures
+     */
+    public void setAnyOfDeviceFeatures(Map<String, List<String>> anyOfDeviceFeatures) {
+        this.anyOfDeviceFeatures = anyOfDeviceFeatures;
     }
 }

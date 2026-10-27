@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -216,6 +216,7 @@ public class JsonUtil {
     private static final String PROXY_DATA = "proxyData";
     private static final String PROXY_DATA_URI = "uri";
     private static final String REQUIRED_DEVICE_FEATURES = "requiredDeviceFeatures";
+    private static final String ANY_OF_DEVICE_FEATURES = "anyOfDeviceFeatures";
     private static final String ABILITY_NAME = "abilityName";
     private static final String SRC_ENTRIES = "srcEntries";
     private static final String ALTERNATE_ICONS = "alternateIcons";
@@ -826,6 +827,7 @@ public class JsonUtil {
             }
         }
         hapInfo.setRequiredDeviceFeatures(parseRequiredDeviceFeatures(hapJson));
+        hapInfo.setAnyOfDeviceFeatures(parseAnyOfDeviceFeatures(hapJson));
         return hapInfo;
     }
 
@@ -1225,6 +1227,7 @@ public class JsonUtil {
         moduleInfo.definePermissions = parseDefinePermissions(moduleJson, data);
         moduleInfo.moduleAtomicService = parseModuleAtomicService(moduleJson);
         moduleInfo.setRequiredDeviceFeatures(parseRequiredDeviceFeatures(moduleJson));
+        moduleInfo.setAnyOfDeviceFeatures(parseAnyOfDeviceFeatures(moduleJson));
         moduleInfo.skillProfiles = parseSkillProfiles(moduleJson);
         return moduleInfo;
     }
@@ -1263,16 +1266,27 @@ public class JsonUtil {
     }
 
     private static Map<String, List<String>> parseRequiredDeviceFeatures(JSONObject jsonObject) {
-        Map<String, List<String>> requiredDeviceFeatures = new HashMap<>();
+        return parseDeviceFeatures(jsonObject, REQUIRED_DEVICE_FEATURES,
+            "Uncompress::parseRequiredDeviceFeatures err: ");
+    }
+
+    private static Map<String, List<String>> parseAnyOfDeviceFeatures(JSONObject jsonObject) {
+        return parseDeviceFeatures(jsonObject, ANY_OF_DEVICE_FEATURES,
+            "Uncompress::parseAnyOfDeviceFeatures err: ");
+    }
+
+    private static Map<String, List<String>> parseDeviceFeatures(JSONObject jsonObject, String fieldName,
+            String errorPrefix) {
+        Map<String, List<String>> deviceFeatures = new HashMap<>();
         try {
-            if (jsonObject.containsKey(REQUIRED_DEVICE_FEATURES)) {
-                requiredDeviceFeatures = jsonObject.getJSONObject(REQUIRED_DEVICE_FEATURES)
+            if (jsonObject != null && jsonObject.containsKey(fieldName)) {
+                deviceFeatures = jsonObject.getJSONObject(fieldName)
                         .toJavaObject(new TypeReference<Map<String, List<String>>>() {});
             }
         } catch (Exception ex) {
-            LOG.warning("Uncompress::parseRequiredDeviceFeatures err: " + ex.getMessage());
+            LOG.warning(errorPrefix + ex.getMessage());
         }
-        return requiredDeviceFeatures;
+        return deviceFeatures;
     }
 
     private static List<DependencyItem> parseDenpendencies(JSONObject appJson, JSONObject moduleJson)

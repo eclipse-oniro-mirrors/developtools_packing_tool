@@ -25,6 +25,7 @@
 using testing::ext::TestSize;
 using OHOS::AppPackingTool::DedupApiVersion;
 using OHOS::AppPackingTool::DedupListSdkParser;
+using OHOS::AppPackingTool::DeviceCalculator;
 using OHOS::AppPackingTool::InterAppDedupPlan;
 using OHOS::AppPackingTool::InterAppDedupSolver;
 using OHOS::AppPackingTool::InterAppGateContext;
@@ -51,7 +52,9 @@ ModuleConfig BuildEligibleConfig(const std::vector<std::string>& deviceTypes = {
     config.moduleName = "entry";
     config.moduleType = "entry";
     config.bundleType = "app";
-    config.deviceTypeNames = deviceTypes;
+    for (const auto& deviceType : deviceTypes) {
+        config.deviceTypes.push_back(DeviceCalculator::StringToDeviceType(deviceType));
+    }
     config.deviceTypesConfigured = true;
     config.deliveryWithInstallPresent = true;
     config.deliveryWithInstall = true;

@@ -46,12 +46,13 @@ bool InterAppDedupSolver::IsModuleEligible(const ModuleConfig& config)
     return true;
 }
 
-bool InterAppDedupSolver::IsDeviceTypeSubset(const std::vector<std::string>& deviceTypes,
+bool InterAppDedupSolver::IsDeviceTypeSubset(const std::vector<DeviceType>& deviceTypes,
     const std::set<std::string>& supportedDeviceTypes)
 {
     for (const auto& deviceType : deviceTypes) {
-        if (supportedDeviceTypes.find(deviceType) == supportedDeviceTypes.end()) {
-            LOG(DEBUG) << "So deduplication for sdk skip: deviceType " << deviceType
+        std::string deviceTypeName = DeviceCalculator::DeviceTypeToString(deviceType);
+        if (supportedDeviceTypes.find(deviceTypeName) == supportedDeviceTypes.end()) {
+            LOG(DEBUG) << "So deduplication for sdk skip: deviceType " << deviceTypeName
                        << " is not declared by the deduplist sdk";
             return false;
         }
@@ -115,10 +116,10 @@ InterAppDedupPlan InterAppDedupSolver::Solve(const InterAppGateContext& context,
     plan.applied = true;
     for (const auto& module : modules) {
         if (!IsModuleEligible(module.config)) {
-            LOG(DEBUG) << "Module " << module.moduleName << " is not eligible for inter-app deduplication";
+            LOG(DEBUG) << "Module " << module.moduleName << " is not eligible for so deduplication for sdk";
             continue;
         }
-        if (!IsDeviceTypeSubset(module.config.deviceTypeNames, dedupList.GetDeviceTypes())) {
+        if (!IsDeviceTypeSubset(module.config.deviceTypes, dedupList.GetDeviceTypes())) {
             LOG(DEBUG) << "Module " << module.moduleName << " deviceTypes is not a subset of deduplist sdk deviceType";
             continue;
         }

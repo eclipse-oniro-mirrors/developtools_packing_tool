@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -64,10 +64,6 @@ ModuleConfig ModuleCalculator::ExtractModuleConfig(
         if (moduleJson->GetStageDeviceTypes(deviceTypeStrings)) {
             for (const auto& deviceTypeStr : deviceTypeStrings) {
                 config.deviceTypes.push_back(DeviceCalculator::StringToDeviceType(deviceTypeStr));
-                if (std::find(config.deviceTypeNames.begin(), config.deviceTypeNames.end(), deviceTypeStr) ==
-                    config.deviceTypeNames.end()) {
-                    config.deviceTypeNames.push_back(deviceTypeStr);
-                }
             }
             // Remove premature judgment, judge after processing requiredDeviceFeatures
         }
@@ -115,14 +111,24 @@ ModuleConfig ModuleCalculator::ExtractModuleConfig(
                     config.deviceTypes.end()) {
                     config.deviceTypes.push_back(normalized);
                 }
-                if (std::find(config.deviceTypeNames.begin(), config.deviceTypeNames.end(), deviceType) ==
-                    config.deviceTypeNames.end()) {
-                    config.deviceTypeNames.push_back(deviceType);
+            }
+        }
+
+        bool hasAnyOfDeviceFeatures = false;
+        if (moduleJson->GetStageHasAnyOfDeviceFeatures(hasAnyOfDeviceFeatures) && hasAnyOfDeviceFeatures) {
+            std::list<std::string> anyOfDeviceTypes;
+            moduleJson->GetStageAnyOfDeviceFeatureTypes(anyOfDeviceTypes);
+            for (const auto& deviceType : anyOfDeviceTypes) {
+                DeviceType normalized = DeviceCalculator::StringToDeviceType(deviceType);
+                config.anyOfDeviceFeatures.push_back(deviceType);
+                if (std::find(config.deviceTypes.begin(), config.deviceTypes.end(), normalized) ==
+                    config.deviceTypes.end()) {
+                    config.deviceTypes.push_back(normalized);
                 }
             }
         }
 
-        // Judge after processing all device types (including those added from requiredDeviceFeatures)
+        // Judge after processing all device types (including those added from device feature fields)
         config.deviceTypesConfigured = !config.deviceTypes.empty();
 
         // Get compileSdkType
@@ -187,6 +193,11 @@ bool ModuleCalculator::HasEmptyRequireDeviceFeatures(const ModuleConfig& moduleC
     return moduleConfig.requireDeviceFeatures.empty();
 }
 
+bool ModuleCalculator::HasEmptyAnyOfDeviceFeatures(const ModuleConfig& moduleConfig)
+{
+    return moduleConfig.anyOfDeviceFeatures.empty();
+}
+
 bool ModuleCalculator::IsMandatoryModule(const ModuleConfig& moduleConfig,
                                          const DeviceInstance& device)
 {
@@ -195,6 +206,7 @@ bool ModuleCalculator::IsMandatoryModule(const ModuleConfig& moduleConfig,
     // 2. deliveryWithInstall = true
     // 3. distributionFilter is empty
     // 4. requireDeviceFeatures is empty
+    // 5. anyOfDeviceFeatures is empty
 
     if (!SupportsDeviceType(moduleConfig, device.type)) {
         return false;
@@ -204,7 +216,7 @@ bool ModuleCalculator::IsMandatoryModule(const ModuleConfig& moduleConfig,
         return MatchesDistributionFilter(moduleConfig, device);
     }
     return moduleConfig.deliveryWithInstall && MatchesDistributionFilter(moduleConfig, device) &&
-        HasEmptyRequireDeviceFeatures(moduleConfig);
+        HasEmptyRequireDeviceFeatures(moduleConfig) && HasEmptyAnyOfDeviceFeatures(moduleConfig);
 }
 
 }  // namespace AppPackingTool

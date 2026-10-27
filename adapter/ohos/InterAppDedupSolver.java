@@ -41,6 +41,7 @@ final class InterAppDedupSolver {
     private static final String NAME = "name";
     private static final String DEVICE_TYPES = "deviceTypes";
     private static final String REQUIRED_DEVICE_FEATURES = "requiredDeviceFeatures";
+    private static final String ANY_OF_DEVICE_FEATURES = "anyOfDeviceFeatures";
     private static final String COMPRESS_NATIVE_LIBS = "compressNativeLibs";
     private static final String EXTRACT_NATIVE_LIBS = "extractNativeLibs";
     private static final String LIB_ISOLATION = "libIsolation";
@@ -271,10 +272,13 @@ final class InterAppDedupSolver {
         context.compileSdkType = app == null ? "" : getString(app, COMPILE_SDK_TYPE, "");
         Set<String> declaredDeviceTypes = getDeviceTypes(module);
         Set<String> requiredDeviceFeatureTypes = getRequiredDeviceFeatureTypes(module);
+        Set<String> anyOfDeviceFeatureTypes = getAnyOfDeviceFeatureTypes(module);
         context.deviceTypes.addAll(declaredDeviceTypes);
         context.deviceTypes.addAll(requiredDeviceFeatureTypes);
+        context.deviceTypes.addAll(anyOfDeviceFeatureTypes);
         context.deviceTypesConfigured = !declaredDeviceTypes.isEmpty()
-                || !requiredDeviceFeatureTypes.isEmpty();
+                || !requiredDeviceFeatureTypes.isEmpty()
+                || !anyOfDeviceFeatureTypes.isEmpty();
     }
 
     private static Set<String> getDeviceTypes(JSONObject module) {
@@ -292,8 +296,16 @@ final class InterAppDedupSolver {
     }
 
     private static Set<String> getRequiredDeviceFeatureTypes(JSONObject module) {
+        return getDeviceFeatureTypes(module, REQUIRED_DEVICE_FEATURES);
+    }
+
+    private static Set<String> getAnyOfDeviceFeatureTypes(JSONObject module) {
+        return getDeviceFeatureTypes(module, ANY_OF_DEVICE_FEATURES);
+    }
+
+    private static Set<String> getDeviceFeatureTypes(JSONObject module, String featureField) {
         Set<String> deviceTypes = new TreeSet<>();
-        JSONObject features = module.getJSONObject(REQUIRED_DEVICE_FEATURES);
+        JSONObject features = module.getJSONObject(featureField);
         if (features == null) {
             return deviceTypes;
         }
@@ -385,7 +397,7 @@ final class InterAppDedupSolver {
         plan.applied = true;
         for (ModuleCandidate module : modules) {
             if (!isModuleEligible(module.moduleContext)) {
-                LOG.debug("Module " + module.moduleName + " is not eligible for inter-app deduplication");
+                LOG.debug("Module " + module.moduleName + " is not eligible for so deduplication for sdk");
                 continue;
             }
             if (!isDeviceTypeSubset(module.moduleContext.deviceTypes, dedupList.getDeviceTypes())) {

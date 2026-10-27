@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026 Huawei Device Co., Ltd.
+ * Copyright (c) 2026-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -71,6 +71,7 @@ final class SODeduplicator {
     private static final String DEVICE_TYPES = "deviceTypes";
     private static final String DELIVERY_WITH_INSTALL = "deliveryWithInstall";
     private static final String REQUIRED_DEVICE_FEATURES = "requiredDeviceFeatures";
+    private static final String ANY_OF_DEVICE_FEATURES = "anyOfDeviceFeatures";
     private static final String COMPRESS_NATIVE_LIBS = "compressNativeLibs";
     private static final String EXTRACT_NATIVE_LIBS = "extractNativeLibs";
     private static final String LIB_ISOLATION = "libIsolation";
@@ -377,7 +378,7 @@ final class SODeduplicator {
                 boolean isEntry = ENTRY.equals(config.moduleType);
                 boolean isMandatory = isEntry ? supportsDevice(config, device)
                         : supportsDevice(config, device) && config.deliveryWithInstall
-                        && config.requiredDeviceFeatures.isEmpty();
+                        && config.requiredDeviceFeatures.isEmpty() && config.anyOfDeviceFeatures.isEmpty();
                 if (isMandatory) {
                     moduleIds.add(module.moduleId);
                 }
@@ -484,6 +485,7 @@ final class SODeduplicator {
             config.distributionFilter = parseDistributionFilter(profile, resourceMap);
         }
         parseRequiredDeviceFeatures(module.getJSONObject(REQUIRED_DEVICE_FEATURES), config);
+        parseAnyOfDeviceFeatures(module.getJSONObject(ANY_OF_DEVICE_FEATURES), config);
         config.deviceTypesConfigured = !config.deviceTypes.isEmpty();
         config.compressNativeLibs = module.getBooleanValue(COMPRESS_NATIVE_LIBS);
         config.extractNativeLibs = !module.containsKey(EXTRACT_NATIVE_LIBS)
@@ -501,6 +503,14 @@ final class SODeduplicator {
     }
 
     private static void parseRequiredDeviceFeatures(JSONObject features, ModuleConfig config) {
+        addDeviceFeatureTypes(features, config.requiredDeviceFeatures, config);
+    }
+
+    private static void parseAnyOfDeviceFeatures(JSONObject features, ModuleConfig config) {
+        addDeviceFeatureTypes(features, config.anyOfDeviceFeatures, config);
+    }
+
+    private static void addDeviceFeatureTypes(JSONObject features, List<String> featureTypes, ModuleConfig config) {
         if (features == null) {
             return;
         }
@@ -510,7 +520,7 @@ final class SODeduplicator {
                 continue;
             }
             String normalized = normalizeDeviceType(deviceType);
-            config.requiredDeviceFeatures.add(normalized);
+            featureTypes.add(normalized);
             if (!config.deviceTypes.contains(normalized)) {
                 config.deviceTypes.add(normalized);
             }
@@ -629,7 +639,7 @@ final class SODeduplicator {
                 matchedModules++;
             }
         }
-        LOG.info("Inter-app deduplication merged for " + matchedModules + " module(s).");
+        LOG.info("So deduplication for sdk merged for " + matchedModules + " module(s).");
         return mergeResult;
     }
 
@@ -658,8 +668,8 @@ final class SODeduplicator {
         String resultJson = InterAppDedupSolver.generateResultJson(plan.getRemovedSos());
         if (resultJson == null || resultJson.isEmpty()) {
             throw new BundleException(formatInterAppDedupError(
-                "Inter-app deduplication failed for module: " + module.reportPath
-                + ", failed to generate inter-app dedup result json"));
+                "So deduplication for sdk failed for module: " + module.reportPath
+                + ", failed to generate so deduplication for sdk result json"));
         }
         mergeContext.mergeResult.resultJson.put(module.moduleId, resultJson);
         return true;
@@ -912,6 +922,7 @@ final class SODeduplicator {
         private boolean deliveryWithInstallPresent = false;
         private String distributionFilter = "";
         private List<String> requiredDeviceFeatures = new ArrayList<>();
+        private List<String> anyOfDeviceFeatures = new ArrayList<>();
         private boolean compressNativeLibs = false;
         private boolean extractNativeLibs = true;
         private boolean libIsolation = false;

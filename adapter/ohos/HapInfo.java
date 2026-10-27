@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -180,9 +180,29 @@ public class HapInfo {
     public long originalSize = 0;
 
     /**
+     * Indicates the skillProfiles of HapInfo.
+     */
+    public List<SkillProfileInfo> skillProfiles = new ArrayList<>();
+
+    /**
+     * Indicates whether the module.abc file is compressed.
+     */
+    public boolean isModuleAbcCompressed = false;
+
+    /**
      * Indicates the descriptions of HapInfo.
      */
     private HashMap<String, String> descriptions = new HashMap<>();
+
+    /**
+     * Indicates the requiredDeviceFeatures
+     */
+    private Map<String, List<String>> requiredDeviceFeatures = new HashMap<>();
+
+    /**
+     * Indicates the anyOfDeviceFeatures
+     */
+    private Map<String, List<String>> anyOfDeviceFeatures = new HashMap<>();
 
     public void setDescriptions(HashMap<String, String> descriptions) {
         this.descriptions = descriptions;
@@ -205,21 +225,6 @@ public class HapInfo {
     }
 
     /**
-     * Indicates the skillProfiles of HapInfo.
-     */
-    public List<SkillProfileInfo> skillProfiles = new ArrayList<>();
-
-    /**
-     * Indicates whether the module.abc file is compressed.
-     */
-    public boolean isModuleAbcCompressed = false;
-
-    /**
-     * Indicates the requiredDeviceFeatures
-     */
-    private Map<String, List<String>> requiredDeviceFeatures = new HashMap<>();
-
-    /**
      * Get value requiredDeviceFeatures
      */
     public Map<String, List<String>> getRequiredDeviceFeatures() {
@@ -231,5 +236,19 @@ public class HapInfo {
      */
     public void setRequiredDeviceFeatures(Map<String, List<String>> requiredDeviceFeatures) {
         this.requiredDeviceFeatures = requiredDeviceFeatures;
+    }
+
+    /**
+     * Get value anyOfDeviceFeatures
+     */
+    public Map<String, List<String>> getAnyOfDeviceFeatures() {
+        return anyOfDeviceFeatures;
+    }
+
+    /**
+     * Set value anyOfDeviceFeatures
+     */
+    public void setAnyOfDeviceFeatures(Map<String, List<String>> anyOfDeviceFeatures) {
+        this.anyOfDeviceFeatures = anyOfDeviceFeatures;
     }
 }
