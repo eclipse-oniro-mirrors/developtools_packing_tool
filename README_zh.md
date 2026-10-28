@@ -295,7 +295,7 @@ ohos_packing_tool pack --mode installer --contents <directory> --out-path <outpu
 
 外部 manifest 的 apps 必须与应用目录一一对应，各元素必须包含非空字符串 bundleName、versionName、path，以及非负 int32 整数 versionCode、minAPIVersion。path 精确为 `Contents/<应用目录名>`；前三个身份字段与模块一致，minAPIVersion 不低于该应用任一模块。有且只有一个元素配置布尔值 coreApp=true。外部顶层 version、distributionType 不作业务校验，未知字段、原始字节和 apps 顺序全部保留；拒绝注释、尾逗号、重复键及尾随垃圾。
 
-自动清单仅生成顶层 version=1、distributionType="developerID"、apps；每个应用写上述五项，minAPIVersion 取模块最大值。应用按目录名的 Unicode 码点顺序排序，仅第一项额外写 coreApp=true，其余项不生成 coreApp 字段。
+自动清单仅生成顶层 version=1、distributionType="developer_id"、apps；每个应用写上述五项，minAPIVersion 取模块最大值。应用按目录名的 Unicode 码点顺序排序，仅第一项额外写 coreApp=true，其余项不生成 coreApp 字段。
 
 输出使用 ZIP DEFLATE，所有条目（manifest.json、HAP/HSP）压缩级别固定为 5，不受模块 debug 值影响；通用解析器接收的 `--compress-level` 不改变 installer 的固定级别。必要时使用 ZIP64，结构如下；解压后的 HAP/HSP 原始字节保持不变：
 

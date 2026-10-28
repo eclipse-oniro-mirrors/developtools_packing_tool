@@ -56,7 +56,7 @@ std::string InstallerManifest::Generate(const std::vector<Json>& apps)
     Json entries = apps;
     Require(!entries.empty(), "Empty application list");
     entries.front()["coreApp"] = true;
-    return nlohmann::ordered_json{{"version", 1}, {"distributionType", "developerID"}, {"apps", entries}}.dump();
+    return nlohmann::ordered_json{{"version", 1}, {"distributionType", "developer_id"}, {"apps", entries}}.dump();
 }
 
 void InstallerManifest::Validate(const std::string& bytes, const std::vector<Json>& apps)

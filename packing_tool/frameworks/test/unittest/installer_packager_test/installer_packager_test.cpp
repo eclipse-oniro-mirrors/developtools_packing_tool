@@ -204,7 +204,7 @@ HWTEST_F(InstallerPackagerTest, MakePackage_001, TestSize.Level1)
     ASSERT_EQ(entries.size(), 2U);
     EXPECT_EQ(entries.at("Contents/app1/entry.hap"), original);
     Json manifest = Json::parse(entries.at("manifest.json"));
-    EXPECT_EQ(manifest, (Json{{"version", 1}, {"distributionType", "developerID"}, {"apps", {App()}}}));
+    EXPECT_EQ(manifest, (Json{{"version", 1}, {"distributionType", "developer_id"}, {"apps", {App()}}}));
     EXPECT_EQ(ReadText(contents_ / "app1/entry.hap"), original);
 }
 
