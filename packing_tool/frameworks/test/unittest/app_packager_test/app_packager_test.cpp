@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
+#include <filesystem>
 
 #include "constants.h"
 #define private public
@@ -1619,5 +1620,42 @@ HWTEST_F(AppPackagerTest, DuplicateAppInputFileNames, Function | MediumTest | Le
     }
     // root was exclusively created by this test under the system temporary directory.
     std::filesystem::remove_all(root);
+}
+
+/*
+ * @tc.name: LargePackage_App_Input_Exceeds_0100
+ * @tc.desc: AC-3.1: APP uncompressed size exceeds limit, driven via MakePackage + injected size limit
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(AppPackagerTest, LargePackage_App_Input_Exceeds_0100, Function | MediumTest | Level1)
+{
+    const int64_t testLimit = 8 * 1024; // 8KB threshold
+
+    OHOS::AppPackingTool::Packager::setMaxAppInputSize(testLimit);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {Constants::PARAM_MODE, Constants::MODE_APP},
+        {Constants::PARAM_OUT_PATH, OUT_PATH},
+        {Constants::PARAM_FORCE, "true"},
+        {Constants::PARAM_HAP_PATH, HAP_PATH},
+        {Constants::PARAM_HSP_PATH, HSP_PATH},
+        {Constants::PARAM_PACK_INFO_PATH, PACK_INFO_PATH},
+    };
+
+    WriteDeduplistSdkFile();
+    MockModuleJsonUtils::MockCheckAppAtomicServiceCompressedSizeValid(true);
+    MockModuleJsonUtils::MockGetHapVerifyInfosMapfromFileList(true);
+    AppPackager appPackager(parameterMap, resultReceiver);
+    int32_t result = appPackager.MakePackage();
+
+    EXPECT_NE(result, 0);
+    EXPECT_TRUE(resultReceiver.find("exceeds") != std::string::npos);
+
+    OHOS::AppPackingTool::Packager::setMaxAppInputSize(
+        OHOS::AppPackingTool::Constants::MAX_APP_INPUT_SIZE);
+    std::error_code rmEc;
+    fs::remove(OUT_PATH, rmEc);
 }
 } // namespace OHOS

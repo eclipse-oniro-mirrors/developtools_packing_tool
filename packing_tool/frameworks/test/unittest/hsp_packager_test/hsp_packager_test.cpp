@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
+#include <filesystem>
 
 #define private public
 #define protected public
@@ -2303,5 +2304,334 @@ HWTEST_F(HspPackagerTest, CompressSkillsDirectory_MissingSkillsPath_0700, Functi
     ASSERT_TRUE(hspPackager.moduleJson_.ParseFromString(moduleJsonWithSkillProfiles));
     hspPackager.jsonPath_ = JSON_PATH;
     EXPECT_FALSE(hspPackager.CompressSkillsDirectory());
+}
+
+// ==================== Large package size check tests ====================
+
+namespace {
+const std::string HSP_PURE_PC_MODULE_JSON = "{"
+    "\"app\": {"
+        "\"bundleName\": \"com.example.pctest\","
+        "\"bundleType\": \"app\","
+        "\"versionCode\": 1000000,"
+        "\"versionName\": \"1.0.0\","
+        "\"minAPIVersion\": 260100026,"
+        "\"apiVersion\": {"
+            "\"compatible\": 26,"
+            "\"target\": 26"
+        "}"
+    "},"
+    "\"module\": {"
+        "\"name\": \"entry\","
+        "\"type\": \"shared\","
+        "\"deviceTypes\": [\"2in1\"],"
+        "\"deliveryWithInstall\": true"
+    "}"
+"}";
+
+const std::string HSP_PURE_PC_LOW_API_MODULE_JSON = "{"
+    "\"app\": {"
+        "\"bundleName\": \"com.example.pctest\","
+        "\"bundleType\": \"app\","
+        "\"versionCode\": 1000000,"
+        "\"versionName\": \"1.0.0\","
+        "\"minAPIVersion\": 260000026,"
+        "\"apiVersion\": {"
+            "\"compatible\": 26,"
+            "\"target\": 26"
+        "}"
+    "},"
+    "\"module\": {"
+        "\"name\": \"entry\","
+        "\"type\": \"shared\","
+        "\"deviceTypes\": [\"2in1\"],"
+        "\"deliveryWithInstall\": true"
+    "}"
+"}";
+
+const std::string HSP_NON_PC_MODULE_JSON = "{"
+    "\"app\": {"
+        "\"bundleName\": \"com.example.npctest\","
+        "\"bundleType\": \"app\","
+        "\"versionCode\": 1000000,"
+        "\"versionName\": \"1.0.0\","
+        "\"minAPIVersion\": 260000026,"
+        "\"apiVersion\": {"
+            "\"compatible\": 26,"
+            "\"target\": 26"
+        "}"
+    "},"
+    "\"module\": {"
+        "\"name\": \"entry\","
+        "\"type\": \"shared\","
+        "\"deviceTypes\": [\"phone\"],"
+        "\"deliveryWithInstall\": true"
+    "}"
+"}";
+
+const std::string HSP_MIXED_DEVICE_MODULE_JSON = "{"
+    "\"app\": {"
+        "\"bundleName\": \"com.example.mixedtest\","
+        "\"bundleType\": \"app\","
+        "\"versionCode\": 1000000,"
+        "\"versionName\": \"1.0.0\","
+        "\"minAPIVersion\": 260000026,"
+        "\"apiVersion\": {"
+            "\"compatible\": 26,"
+            "\"target\": 26"
+        "}"
+    "},"
+    "\"module\": {"
+        "\"name\": \"entry\","
+        "\"type\": \"shared\","
+        "\"deviceTypes\": [\"2in1\", \"phone\"],"
+        "\"deliveryWithInstall\": true"
+    "}"
+"}";
+
+const std::string HSP_LARGE_PACKAGE_TEST_DIR = "/data/test/hsp_large_pkg_test";
+const std::string HSP_LARGE_PACKAGE_JSON_PATH = "/data/test/hsp_large_pkg_test/module.json";
+const std::string HSP_LARGE_PACKAGE_OUT_PATH = "/data/test/hsp_large_pkg_test/output.hsp";
+const std::string HSP_LARGE_PACKAGE_BIN_PATH = "/data/test/hsp_large_pkg_test/large.so";
+const int HSP_LARGE_BIN_SIZE = 8 * 1024;
+// Use small test thresholds driven by injectors instead of real multi-GB files
+const int64_t HSP_TEST_COMPRESSED_LIMIT = 4 * 1024;     // 4KB threshold for compressed
+const int64_t HSP_TEST_UNCOMPRESSED_LIMIT = 8 * 1024;   // 8KB threshold for uncompressed
+}
+
+static void HspWriteFile(const std::string& path, const std::string& content)
+{
+    std::ofstream ofs(path);
+    if (ofs.is_open()) {
+        ofs << content;
+        ofs.close();
+    }
+}
+
+static void HspCreateLargeBinFile(const std::string& path, int sizeBytes)
+{
+    std::string content(sizeBytes, 'X');
+    HspWriteFile(path, content);
+}
+
+static void HspSetupLargePackageTestDir()
+{
+    std::error_code ec;
+    std::filesystem::create_directories(HSP_LARGE_PACKAGE_TEST_DIR, ec);
+}
+
+static void HspCleanupLargePackageTestDir()
+{
+    std::error_code ec;
+    std::filesystem::remove_all(HSP_LARGE_PACKAGE_TEST_DIR, ec);
+}
+
+static void HspRestoreAllSizeLimits()
+{
+    OHOS::AppPackingTool::Packager::setMaxHapHspCompressedSize(
+        OHOS::AppPackingTool::Constants::MAX_HAP_HSP_COMPRESSED_SIZE);
+    OHOS::AppPackingTool::Packager::setMaxPurePcInputSize(
+        OHOS::AppPackingTool::Constants::MAX_PURE_PC_INPUT_SIZE);
+    OHOS::AppPackingTool::Packager::setMaxAppInputSize(
+        OHOS::AppPackingTool::Constants::MAX_APP_INPUT_SIZE);
+}
+
+/*
+ * @tc.name: HspLargePackage_NonPc_Compressed_Exceeds_0100
+ * @tc.desc: AC-1.1: non-pure-PC HSP compressed size exceeds limit, driven via MakePackage + injected size limit
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(HspPackagerTest, HspLargePackage_NonPc_Compressed_Exceeds_0100, Function | MediumTest | Level1)
+{
+    HspSetupLargePackageTestDir();
+    HspWriteFile(HSP_LARGE_PACKAGE_JSON_PATH, HSP_NON_PC_MODULE_JSON);
+    HspCreateLargeBinFile(HSP_LARGE_PACKAGE_BIN_PATH, HSP_LARGE_BIN_SIZE);
+
+    OHOS::AppPackingTool::Packager::setMaxHapHspCompressedSize(HSP_TEST_COMPRESSED_LIMIT);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, "hsp"},
+        {OHOS::AppPackingTool::Constants::PARAM_JSON_PATH, HSP_LARGE_PACKAGE_JSON_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, HSP_LARGE_PACKAGE_OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_FILE_PATH, HSP_LARGE_PACKAGE_BIN_PATH},
+    };
+
+    OHOS::AppPackingTool::HspPackager hspPackager(parameterMap, resultReceiver);
+    int32_t result = hspPackager.MakePackage();
+
+    EXPECT_NE(result, 0);
+    EXPECT_TRUE(resultReceiver.find("exceeds") != std::string::npos);
+
+    HspRestoreAllSizeLimits();
+    HspCleanupLargePackageTestDir();
+}
+
+/*
+ * @tc.name: HspLargePackage_MixedDevice_Compressed_Exceeds_0100
+ * @tc.desc: AC-1.2: mixed deviceTypes (2in1+phone) HSP compressed size exceeds limit
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(HspPackagerTest, HspLargePackage_MixedDevice_Compressed_Exceeds_0100, Function | MediumTest | Level1)
+{
+    HspSetupLargePackageTestDir();
+    HspWriteFile(HSP_LARGE_PACKAGE_JSON_PATH, HSP_MIXED_DEVICE_MODULE_JSON);
+    HspCreateLargeBinFile(HSP_LARGE_PACKAGE_BIN_PATH, HSP_LARGE_BIN_SIZE);
+
+    OHOS::AppPackingTool::Packager::setMaxHapHspCompressedSize(HSP_TEST_COMPRESSED_LIMIT);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, "hsp"},
+        {OHOS::AppPackingTool::Constants::PARAM_JSON_PATH, HSP_LARGE_PACKAGE_JSON_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, HSP_LARGE_PACKAGE_OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_FILE_PATH, HSP_LARGE_PACKAGE_BIN_PATH},
+    };
+
+    OHOS::AppPackingTool::HspPackager hspPackager(parameterMap, resultReceiver);
+    int32_t result = hspPackager.MakePackage();
+
+    EXPECT_NE(result, 0);
+    EXPECT_TRUE(resultReceiver.find("exceeds") != std::string::npos);
+
+    HspRestoreAllSizeLimits();
+    HspCleanupLargePackageTestDir();
+}
+
+/*
+ * @tc.name: HspLargePackage_PurePc_Input_Exceeds_0100
+ * @tc.desc: AC-2.1: pure-PC HSP uncompressed size exceeds limit
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(HspPackagerTest, HspLargePackage_PurePc_Input_Exceeds_0100, Function | MediumTest | Level1)
+{
+    HspSetupLargePackageTestDir();
+    HspWriteFile(HSP_LARGE_PACKAGE_JSON_PATH, HSP_PURE_PC_MODULE_JSON);
+    HspCreateLargeBinFile(HSP_LARGE_PACKAGE_BIN_PATH, HSP_LARGE_BIN_SIZE);
+
+    OHOS::AppPackingTool::Packager::setMaxPurePcInputSize(HSP_TEST_UNCOMPRESSED_LIMIT);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, "hsp"},
+        {OHOS::AppPackingTool::Constants::PARAM_JSON_PATH, HSP_LARGE_PACKAGE_JSON_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, HSP_LARGE_PACKAGE_OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_FILE_PATH, HSP_LARGE_PACKAGE_BIN_PATH},
+    };
+
+    OHOS::AppPackingTool::HspPackager hspPackager(parameterMap, resultReceiver);
+    int32_t result = hspPackager.MakePackage();
+
+    EXPECT_NE(result, 0);
+    EXPECT_TRUE(resultReceiver.find("exceeds") != std::string::npos);
+
+    HspRestoreAllSizeLimits();
+    HspCleanupLargePackageTestDir();
+}
+
+/*
+ * @tc.name: HspLargePackage_MinApiVersion_Insufficient_0100
+ * @tc.desc: AC-4.2: HSP compressed exceeds limit but minAPIVersion < 26.1.0 should fail
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(HspPackagerTest, HspLargePackage_MinApiVersion_Insufficient_0100, Function | MediumTest | Level1)
+{
+    HspSetupLargePackageTestDir();
+    HspWriteFile(HSP_LARGE_PACKAGE_JSON_PATH, HSP_PURE_PC_LOW_API_MODULE_JSON);
+    HspCreateLargeBinFile(HSP_LARGE_PACKAGE_BIN_PATH, HSP_LARGE_BIN_SIZE);
+
+    OHOS::AppPackingTool::Packager::setMaxHapHspCompressedSize(HSP_TEST_COMPRESSED_LIMIT);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, "hsp"},
+        {OHOS::AppPackingTool::Constants::PARAM_JSON_PATH, HSP_LARGE_PACKAGE_JSON_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, HSP_LARGE_PACKAGE_OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_FILE_PATH, HSP_LARGE_PACKAGE_BIN_PATH},
+    };
+
+    OHOS::AppPackingTool::HspPackager hspPackager(parameterMap, resultReceiver);
+    int32_t result = hspPackager.MakePackage();
+
+    EXPECT_NE(result, 0);
+    EXPECT_TRUE(resultReceiver.find("minAPIVersion") != std::string::npos);
+
+    HspRestoreAllSizeLimits();
+    HspCleanupLargePackageTestDir();
+}
+
+/*
+ * @tc.name: HspLargePackage_MinApiVersion_Sufficient_0100
+ * @tc.desc: AC-4.1: HSP compressed exceeds limit and minAPIVersion >= 26.1.0 should succeed
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(HspPackagerTest, HspLargePackage_MinApiVersion_Sufficient_0100, Function | MediumTest | Level1)
+{
+    HspSetupLargePackageTestDir();
+    HspWriteFile(HSP_LARGE_PACKAGE_JSON_PATH, HSP_PURE_PC_MODULE_JSON);
+    HspCreateLargeBinFile(HSP_LARGE_PACKAGE_BIN_PATH, HSP_LARGE_BIN_SIZE);
+
+    OHOS::AppPackingTool::Packager::setMaxHapHspCompressedSize(HSP_TEST_COMPRESSED_LIMIT);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, "hsp"},
+        {OHOS::AppPackingTool::Constants::PARAM_JSON_PATH, HSP_LARGE_PACKAGE_JSON_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, HSP_LARGE_PACKAGE_OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_FILE_PATH, HSP_LARGE_PACKAGE_BIN_PATH},
+    };
+
+    OHOS::AppPackingTool::HspPackager hspPackager(parameterMap, resultReceiver);
+    int32_t result = hspPackager.MakePackage();
+
+    EXPECT_EQ(result, 0);
+
+    HspRestoreAllSizeLimits();
+    HspCleanupLargePackageTestDir();
+}
+
+/*
+ * @tc.name: HspLargePackage_PurePc_Success_0100
+ * @tc.desc: AC-5.1: pure-PC HSP large package with all conditions met should succeed
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(HspPackagerTest, HspLargePackage_PurePc_Success_0100, Function | MediumTest | Level1)
+{
+    HspSetupLargePackageTestDir();
+    HspWriteFile(HSP_LARGE_PACKAGE_JSON_PATH, HSP_PURE_PC_MODULE_JSON);
+    HspCreateLargeBinFile(HSP_LARGE_PACKAGE_BIN_PATH, HSP_LARGE_BIN_SIZE);
+
+    OHOS::AppPackingTool::Packager::setMaxHapHspCompressedSize(HSP_TEST_COMPRESSED_LIMIT);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, "hsp"},
+        {OHOS::AppPackingTool::Constants::PARAM_JSON_PATH, HSP_LARGE_PACKAGE_JSON_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, HSP_LARGE_PACKAGE_OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_FILE_PATH, HSP_LARGE_PACKAGE_BIN_PATH},
+    };
+
+    OHOS::AppPackingTool::HspPackager hspPackager(parameterMap, resultReceiver);
+    int32_t result = hspPackager.MakePackage();
+
+    EXPECT_EQ(result, 0);
+
+    std::error_code ec;
+    EXPECT_TRUE(std::filesystem::exists(HSP_LARGE_PACKAGE_OUT_PATH, ec));
+
+    HspRestoreAllSizeLimits();
+    HspCleanupLargePackageTestDir();
 }
 } // namespace OHOS

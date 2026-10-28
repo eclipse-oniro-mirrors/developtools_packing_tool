@@ -227,6 +227,7 @@ public class Compressor {
     private List<String> fileNameList = new ArrayList<String>();
     private List<String> supportDimensionsList = Arrays.asList(PIC_1X2, PIC_2X2, PIC_2X4, PIC_4X4, PIC_1X1, PIC_6X4);
     private HashMap<String, HapVerifyInfo> hapVerifyInfoMap = new HashMap<>();
+    private long[] cachedZipSizes = null;
 
     public static int getEntryModuleSizeLimit() {
         return entryModuleSizeLimit;
@@ -546,6 +547,12 @@ public class Compressor {
             LOG.error(PackingToolErrMsg.CHECK_ATOMIC_SERVICE_SIZE_FAILED.toString(errMsg));
         }
 
+        if (compressResult && !checkPackSizeValid(utility)) {
+            compressResult = false;
+            String errMsg = "Pack size validation failed.";
+            LOG.error(PackingToolErrMsg.COMPRESS_PROCESS_FAILED.toString(errMsg));
+        }
+
         // if compress failed, delete out file.
         if (!compressResult) {
             String errMsg = "Compress process failed.";
@@ -705,6 +712,125 @@ public class Compressor {
             buildHash(utility);
         }
     }
+
+    private boolean checkPackSizeValid(Utility utility) {
+        String outPath = utility.getOutPath();
+        if (outPath.isEmpty()) {
+            return true;
+        }
+        long[] sizes;
+        if (cachedZipSizes != null) {
+            sizes = cachedZipSizes;
+            cachedZipSizes = null;
+        } else {
+            try {
+                sizes = FileUtils.calculateZipSize(outPath);
+            } catch (IOException exception) {
+                LOG.error(PackingToolErrMsg.COMPRESS_PROCESS_FAILED.toString(
+                        "Failed to calculate zip size: " + exception.getMessage()));
+                return false;
+            }
+        }
+        if (!checkHapHspUncompressedSize(utility, sizes)) {
+            return false;
+        }
+        if (!checkHapHspCompressedSize(utility, sizes)) {
+            return false;
+        }
+        if (!checkAppUncompressedSizeValid(utility, sizes)) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean checkHapHspUncompressedSize(Utility utility, long[] sizes) {
+        String mode = utility.getMode();
+        if (!Utility.MODE_HAP.equals(mode) && !Utility.MODE_HSP.equals(mode)) {
+            return true;
+        }
+        long uncompressedSize = sizes[1];
+        List<String> deviceTypes = parseDeviceTypes(utility);
+        if (isPurePcModule(deviceTypes) && uncompressedSize > Constants.MAX_PURE_PC_INPUT_SIZE) {
+            String errMsg = "Pure PC HAP/HSP uncompressed size is " + uncompressedSize +
+                    " bytes, exceeds 200GB limit.";
+            LOG.error(PackingToolErrMsg.PURE_PC_INPUT_SIZE_EXCEEDS_LIMIT.toString(errMsg));
+            return false;
+        }
+        return true;
+    }
+
+    private boolean checkHapHspCompressedSize(Utility utility, long[] sizes) {
+        String mode = utility.getMode();
+        if (!Utility.MODE_HAP.equals(mode) && !Utility.MODE_HSP.equals(mode)) {
+            return true;
+        }
+        long compressedSize = sizes[0];
+        if (compressedSize <= Constants.MAX_HAP_HSP_COMPRESSED_SIZE) {
+            return true;
+        }
+        if (!utility.getJsonPath().isEmpty() && !isModuleJSON(utility.getJsonPath())) {
+            String errMsg = "HAP/HSP compressed size is " + compressedSize + " bytes, exceeds 4GB limit. " +
+                    "FA model (config.json) does not support large packages.";
+            LOG.error(PackingToolErrMsg.HAP_HSP_COMPRESSED_SIZE_EXCEEDS_LIMIT.toString(errMsg));
+            return false;
+        }
+        List<String> deviceTypes = parseDeviceTypes(utility);
+        if (!isPurePcModule(deviceTypes)) {
+            String errMsg = "HAP/HSP compressed size is " + compressedSize + " bytes, exceeds 4GB limit " +
+                    "for non-pure-PC module. deviceTypes: " + deviceTypes;
+            LOG.error(PackingToolErrMsg.HAP_HSP_COMPRESSED_SIZE_EXCEEDS_LIMIT.toString(errMsg));
+            return false;
+        }
+        try {
+            checkMinApiVersionForLargePackage(utility);
+        } catch (BundleException exception) {
+            LOG.error(PackingToolErrMsg.HAP_HSP_COMPRESSED_SIZE_EXCEEDS_LIMIT.toString(
+                    exception.getMessage()));
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean isPurePcModule(List<String> deviceTypes) {
+        if (deviceTypes == null || deviceTypes.isEmpty()) {
+            return false;
+        }
+        return deviceTypes.size() == 1 && Constants.DEVICE_TYPE_PC.equals(deviceTypes.get(0));
+    }
+
+    private static List<String> parseDeviceTypes(Utility utility) {
+        if (utility.getJsonPath().isEmpty()) {
+            return new ArrayList<>();
+        }
+        Optional<String> optional = FileUtils.getFileContent(utility.getJsonPath());
+        if (!optional.isPresent()) {
+            return new ArrayList<>();
+        }
+        try {
+            return ModuleJsonUtil.parseDeviceType(optional.get());
+        } catch (BundleException e) {
+            LOG.warning("parseDeviceType failed: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    private void checkMinApiVersionForLargePackage(Utility utility) throws BundleException {
+        if (utility.getJsonPath().isEmpty()) {
+            return;
+        }
+        Optional<String> optional = FileUtils.getFileContent(utility.getJsonPath());
+        if (!optional.isPresent()) {
+            return;
+        }
+        int apiVersion = ModuleJsonUtil.getOriginMinAPIVersion(optional.get());
+        if (apiVersion < 0 || apiVersion < Constants.MIN_API_VERSION_LARGE_PACKAGE) {
+            String errMsg = "HAP/HSP compressed size exceeds 4GB, but minAPIVersion is " +
+                    apiVersion + ", lower than required version 26.1.0 for large package.";
+            LOG.error(PackingToolErrMsg.MIN_API_VERSION_INSUFFICIENT_FOR_LARGE_PACKAGE.toString(errMsg));
+            throw new BundleException("minAPIVersion is lower than required version 26.1.0 for large package.");
+        }
+    }
+
 
     private static boolean isPluginHost(Utility utility) throws BundleException {
         File file = new File(utility.getJsonPath());
@@ -1056,15 +1182,22 @@ public class Compressor {
 
         File destFile = new File(utility.getOutPath());
         List<HapVerifyInfo> hapVerifyInfos = new ArrayList<>();
+        long totalCompressedSize = 0L;
+        long totalUncompressedSize = 0L;
         try (ZipFile zipApp = new ZipFile(destFile)) {
             Enumeration<? extends ZipEntry> entries = zipApp.entries();
             while (entries.hasMoreElements()) {
                 ZipEntry entry = entries.nextElement();
+                if (entry != null) {
+                    totalCompressedSize += entry.getCompressedSize();
+                    totalUncompressedSize += entry.getSize();
+                }
                 if (entry != null && hapVerifyInfoMap.containsKey(entry.getName())) {
                     hapVerifyInfoMap.get(entry.getName()).setFileLength(entry.getCompressedSize());
                     hapVerifyInfos.add(hapVerifyInfoMap.get(entry.getName()));
                 }
             }
+            cachedZipSizes = new long[]{totalCompressedSize, totalUncompressedSize};
 
             if (hapVerifyInfos.isEmpty()) {
                 LOG.error(PackingToolErrMsg.CHECK_HAP_VERIFY_INFO_LIST_EMPTY.toString("Hap verify infos is empty"));
@@ -1090,6 +1223,22 @@ public class Compressor {
                     "BundleException: " + ignored.getMessage()));
             return false;
         }
+    }
+
+    private boolean checkAppUncompressedSizeValid(Utility utility, long[] sizes) {
+        if (!utility.getMode().equals(Utility.MODE_APP) &&
+                !utility.getMode().equals(Utility.MODE_FAST_APP) &&
+                !utility.getMode().equals(Utility.MODE_MULTI_APP)) {
+            return true;
+        }
+        long uncompressedSize = sizes[1];
+        if (uncompressedSize > Constants.MAX_APP_INPUT_SIZE) {
+            String errMsg = "APP uncompressed size is " + uncompressedSize +
+                    " bytes, exceeds 200GB limit.";
+            LOG.error(PackingToolErrMsg.APP_INPUT_SIZE_EXCEEDS_LIMIT.toString(errMsg));
+            return false;
+        }
+        return true;
     }
 
     private static boolean checkStageHap(Utility utility) throws BundleException {

@@ -42,6 +42,7 @@ ohos_unittest("hqf_packager_test") {
     "../../../src/json/pt_json.cpp",
     "../../../src/log.cpp",
     "../../../src/packager.cpp",
+    "../../../src/scan_statdulpicate.cpp",
     "../../../src/unzip_wrapper.cpp",
     "../../../src/utils.cpp",
     "../../../src/zip_utils.cpp",
@@ -52,6 +53,7 @@ ohos_unittest("hqf_packager_test") {
     "bounds_checking_function:libsec_static",
     "cJSON:cjson_static",
     "hilog:libhilog",
+    "json:nlohmann_json_static",
     "openssl:libcrypto_shared",
     "zlib:libz",
   ]

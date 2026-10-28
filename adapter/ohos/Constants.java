@@ -245,4 +245,29 @@ public class Constants {
      * Indicates the buffer size
      */
     public static final int BUFFER_SIZE = 40 * 1024;
+
+    /**
+     * Max compressed size for HAP/HSP: 4GB
+     */
+    public static final long MAX_HAP_HSP_COMPRESSED_SIZE = 4L * 1024 * 1024 * 1024;
+
+    /**
+     * Max input size for pure PC HAP/HSP packaging: 200GB
+     */
+    public static final long MAX_PURE_PC_INPUT_SIZE = 200L * 1024 * 1024 * 1024;
+
+    /**
+     * Max input size for APP/Fast App/MultiApp/Installer packaging: 200GB
+     */
+    public static final long MAX_APP_INPUT_SIZE = 200L * 1024 * 1024 * 1024;
+
+    /**
+     * Min API version (raw value) required for large HAP/HSP packages: 26.1.0
+     */
+    public static final int MIN_API_VERSION_LARGE_PACKAGE = 260100026;
+
+    /**
+     * Device type for pure PC (2-in-1) modules
+     */
+    public static final String DEVICE_TYPE_PC = "2in1";
 }

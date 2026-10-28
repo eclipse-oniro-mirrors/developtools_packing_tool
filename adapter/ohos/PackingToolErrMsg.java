@@ -1655,4 +1655,50 @@ public class PackingToolErrMsg {
             .setCause("[installer] %s")
             .addSolution("Check the reported path, file permissions and available disk space.")
             .build();
+
+    /**
+     * HAP_HSP_COMPRESSED_SIZE_EXCEEDS_LIMIT
+     */
+    public static final ErrorMsg HAP_HSP_COMPRESSED_SIZE_EXCEEDS_LIMIT = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("07")
+            .setErrCode("001")
+            .setDescription("HAP/HSP compressed size exceeds 4GB limit for non-pure-PC module.")
+            .setCause("%s")
+            .addSolution("Please check the module deviceTypes and reduce the package size, " +
+                "or use pure PC (2in1) device type.")
+            .build();
+
+    /**
+     * PURE_PC_INPUT_SIZE_EXCEEDS_LIMIT
+     */
+    public static final ErrorMsg PURE_PC_INPUT_SIZE_EXCEEDS_LIMIT = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("07")
+            .setErrCode("002")
+            .setDescription("HAP/HSP input size exceeds 200GB limit for pure-PC module.")
+            .setCause("%s")
+            .addSolution("Please reduce the input file size to within 200GB.")
+            .build();
+
+    /**
+     * APP_INPUT_SIZE_EXCEEDS_LIMIT
+     */
+    public static final ErrorMsg APP_INPUT_SIZE_EXCEEDS_LIMIT = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("07")
+            .setErrCode("003")
+            .setDescription("APP input size exceeds 200GB limit.")
+            .setCause("%s")
+            .addSolution("Please reduce the total input file size to within 200GB.")
+            .build();
+
+    /**
+     * MIN_API_VERSION_INSUFFICIENT_FOR_LARGE_PACKAGE
+     */
+    public static final ErrorMsg MIN_API_VERSION_INSUFFICIENT_FOR_LARGE_PACKAGE = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("07")
+            .setErrCode("004")
+            .setDescription("minAPIVersion is lower than required version 26.1.0 for large package.")
+            .setCause("%s")
+            .addSolution("Please set minAPIVersion in module.json to at least 26.1.0 " +
+                "when packaging HAP/HSP larger than 4GB.")
+            .build();
 }

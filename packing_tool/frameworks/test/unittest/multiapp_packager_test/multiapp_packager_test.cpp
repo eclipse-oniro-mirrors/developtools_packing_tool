@@ -1455,4 +1455,38 @@ HWTEST_F(MultiAppPackagerTest, MergeFailureCleansCreatedDirectories, Function | 
     }
     fs::remove_all(root);
 }
+
+/*
+ * @tc.name: LargePackage_App_Input_Exceeds_0100
+ * @tc.desc: AC-3.1: MultiApp uncompressed size exceeds limit, driven via MakePackage + injected size limit
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(MultiAppPackagerTest, LargePackage_App_Input_Exceeds_0100, Function | MediumTest | Level1)
+{
+    const int64_t testLimit = 8 * 1024; // 8KB threshold
+
+    OHOS::AppPackingTool::Packager::setMaxAppInputSize(testLimit);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {Constants::PARAM_MODE, "multiApp"},
+        {Constants::PARAM_OUT_PATH, "/data/test/multiapp_large_out.app"},
+        {Constants::PARAM_FORCE, "true"},
+        {Constants::PARAM_HAP_LIST, "/data/test/resource/packingtool/test_file/hap/appPackagerHapTest.hap"},
+        {Constants::PARAM_HSP_LIST, "/data/test/resource/packingtool/test_file/hsp/appPackagerHspTest.hsp"},
+        {Constants::PARAM_PACK_INFO_PATH, "/data/test/resource/packingtool/test_file/pack.info"},
+    };
+
+    MultiAppPackager multiAppPackager(parameterMap, resultReceiver);
+    int32_t result = multiAppPackager.MakePackage();
+
+    EXPECT_NE(result, 0);
+    EXPECT_TRUE(resultReceiver.find("exceeds") != std::string::npos);
+
+    OHOS::AppPackingTool::Packager::setMaxAppInputSize(
+        OHOS::AppPackingTool::Constants::MAX_APP_INPUT_SIZE);
+    std::error_code rmEc;
+    std::filesystem::remove("/data/test/multiapp_large_out.app", rmEc);
+}
 } // namespace OHOS

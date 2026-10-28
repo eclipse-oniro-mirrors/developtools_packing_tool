@@ -21,6 +21,7 @@
 #include <openssl/sha.h>
 #include <set>
 #include <string>
+#include <utility>
 
 namespace fs = std::filesystem;
 
@@ -79,6 +80,10 @@ public:
     static bool GetRealPathOfNoneExistFile(const std::string& path, std::string& realPath);
     static bool RemoveAllFilesInDirectory(const std::string& directoryPath);
     static bool IsPathValid(const std::string &path, const bool &isFile, const std::string suffix = "");
+
+    // Large package helpers
+    static bool IsPurePcModule(const std::list<std::string>& deviceTypes);
+    static std::pair<int64_t, int64_t> CalculateZipSize(const std::string& outPath);
 };
 }  // namespace AppPackingTool
 }  // namespace OHOS

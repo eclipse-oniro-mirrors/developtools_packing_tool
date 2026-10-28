@@ -205,6 +205,12 @@ public:
     static const ErrorMsg INSTALLER_CLEANUP_FAILED;
     static const ErrorMsg INSTALLER_IO_FAILED;
 
+    // ==================== Large package size check errors (Type: 07) ====================
+    static const ErrorMsg HAP_HSP_COMPRESSED_SIZE_EXCEEDS_LIMIT;
+    static const ErrorMsg PURE_PC_INPUT_SIZE_EXCEEDS_LIMIT;
+    static const ErrorMsg APP_INPUT_SIZE_EXCEEDS_LIMIT;
+    static const ErrorMsg MIN_API_VERSION_INSUFFICIENT_FOR_LARGE_PACKAGE;
+
 private:
     PackingToolErrMsg() = delete;
 };

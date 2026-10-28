@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <string>
 #include <fstream>
+#include <filesystem>
 
 #define private public
 #define protected public
@@ -2027,5 +2028,42 @@ HWTEST_F(FastAppPackagerTest, PackDir_SkillModuleType_0001, Function | MediumTes
         moduleType == OHOS::AppPackingTool::Constants::TYPE_SKILL)
         ? OHOS::AppPackingTool::Constants::HSP_SUFFIX : OHOS::AppPackingTool::Constants::HAP_SUFFIX;
     EXPECT_EQ(suffix, OHOS::AppPackingTool::Constants::HSP_SUFFIX);
+}
+
+/*
+ * @tc.name: LargePackage_App_Input_Exceeds_0100
+ * @tc.desc: AC-3.1: fast app mode uncompressed size exceeds limit, driven via MakePackage + injected size limit
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(FastAppPackagerTest, LargePackage_App_Input_Exceeds_0100, Function | MediumTest | Level1)
+{
+    const int64_t testLimit = 8 * 1024; // 8KB threshold
+
+    OHOS::AppPackingTool::Packager::setMaxAppInputSize(testLimit);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, OHOS::AppPackingTool::Constants::MODE_FAST_APP},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_HAP_PATH, HAP_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_HSP_PATH, HSP_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_PACK_INFO_PATH, PACK_INFO_PATH},
+    };
+
+    WriteDeduplistSdkFile();
+    MockFastAppModuleJsonUtils::MockCheckAppAtomicServiceCompressedSizeValid(true);
+    MockFastAppModuleJsonUtils::MockGetHapVerifyInfosMapfromFileList(true);
+    OHOS::AppPackingTool::FastAppPackager fastAppPackager(parameterMap, resultReceiver);
+    int32_t result = fastAppPackager.MakePackage();
+
+    EXPECT_NE(result, 0);
+    EXPECT_TRUE(resultReceiver.find("exceeds") != std::string::npos);
+
+    OHOS::AppPackingTool::Packager::setMaxAppInputSize(
+        OHOS::AppPackingTool::Constants::MAX_APP_INPUT_SIZE);
+    std::error_code rmEc;
+    std::filesystem::remove(OUT_PATH, rmEc);
 }
 } // namespace OHOS

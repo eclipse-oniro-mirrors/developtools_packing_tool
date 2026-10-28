@@ -1927,6 +1927,24 @@ class ModuleJsonUtil {
     }
 
     /**
+     * Gets the raw minAPIVersion from a {@code module.json} string without truncation.
+     * <p>
+     * Unlike {@link #getMinAPIVersion(String)}, this returns the original integer value
+     * so that major.minor.patch ordering is preserved for version comparisons.
+     *
+     * @param jsonString the JSON string of module.json
+     * @return the raw minAPIVersion value, or -1 if the field is missing
+     */
+    public static int getOriginMinAPIVersion(String jsonString) throws BundleException {
+        JSONObject appObj = ModuleJsonUtil.getAppObj(jsonString);
+        if (!appObj.containsKey(MIN_API_VERSION)) {
+            LOG.warning("Get originMinAPIVersion in the Stage module.json failed.");
+            return MIN_API_VERSION_ERROR_VALUE;
+        }
+        return appObj.getIntValue(MIN_API_VERSION);
+    }
+
+    /**
      * get apiReleaseType in module.json
      *
      * @param jsonString is the file content of module.json

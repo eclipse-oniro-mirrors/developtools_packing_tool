@@ -843,5 +843,24 @@ HWTEST_F(InstallerPackagerTest, RejectInvalidManifestStructure, TestSize.Level2)
         EXPECT_FALSE(fs::exists(output_));
     }
 }
+
+/*
+ * @tc.name: LargePackage_App_Input_Exceeds_0100
+ * @tc.desc: AC-3.1: Installer uncompressed size exceeds limit, driven via MakePackage + injected size limit
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(InstallerPackagerTest, LargePackage_App_Input_Exceeds_0100, TestSize.Level2)
+{
+    const int64_t testLimit = 1; // 1 byte threshold — any real product exceeds this
+
+    Packager::setMaxAppInputSize(testLimit);
+
+    EXPECT_NE(Pack(), ERR_OK);
+    EXPECT_TRUE(result_.find("exceeds") != std::string::npos);
+    EXPECT_FALSE(fs::exists(output_));
+
+    Packager::setMaxAppInputSize(Constants::MAX_APP_INPUT_SIZE);
+}
 }
 }

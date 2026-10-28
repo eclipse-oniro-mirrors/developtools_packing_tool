@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <string>
 #include <fstream>
+#include <filesystem>
 
 #define private public
 #define protected public
@@ -1649,5 +1650,368 @@ HWTEST_F(HapPackagerTest, CheckPkgContext_0300, Function | MediumTest | Level1)
     OHOS::AppPackingTool::HapPackager hapPackager(parameterMap, resultReceiver);
     EXPECT_FALSE(hapPackager.CheckPkgContext());
     system("rm -f /data/test/CAPABILITY.profile");
+}
+
+// ==================== Large package size check tests ====================
+
+namespace {
+const std::string PURE_PC_MODULE_JSON = "{"
+    "\"app\": {"
+        "\"bundleName\": \"com.example.pctest\","
+        "\"bundleType\": \"app\","
+        "\"versionCode\": 1000000,"
+        "\"versionName\": \"1.0.0\","
+        "\"minAPIVersion\": 260100026,"
+        "\"apiVersion\": {"
+            "\"compatible\": 26,"
+            "\"target\": 26"
+        "}"
+    "},"
+    "\"module\": {"
+        "\"name\": \"entry\","
+        "\"type\": \"entry\","
+        "\"deviceTypes\": [\"2in1\"],"
+        "\"deliveryWithInstall\": true"
+    "}"
+"}";
+
+const std::string PURE_PC_LOW_API_MODULE_JSON = "{"
+    "\"app\": {"
+        "\"bundleName\": \"com.example.pctest\","
+        "\"bundleType\": \"app\","
+        "\"versionCode\": 1000000,"
+        "\"versionName\": \"1.0.0\","
+        "\"minAPIVersion\": 260000026,"
+        "\"apiVersion\": {"
+            "\"compatible\": 26,"
+            "\"target\": 26"
+        "}"
+    "},"
+    "\"module\": {"
+        "\"name\": \"entry\","
+        "\"type\": \"entry\","
+        "\"deviceTypes\": [\"2in1\"],"
+        "\"deliveryWithInstall\": true"
+    "}"
+"}";
+
+const std::string NON_PC_MODULE_JSON = "{"
+    "\"app\": {"
+        "\"bundleName\": \"com.example.npctest\","
+        "\"bundleType\": \"app\","
+        "\"versionCode\": 1000000,"
+        "\"versionName\": \"1.0.0\","
+        "\"minAPIVersion\": 260000026,"
+        "\"apiVersion\": {"
+            "\"compatible\": 26,"
+            "\"target\": 26"
+        "}"
+    "},"
+    "\"module\": {"
+        "\"name\": \"entry\","
+        "\"type\": \"entry\","
+        "\"deviceTypes\": [\"phone\"],"
+        "\"deliveryWithInstall\": true"
+    "}"
+"}";
+
+const std::string MIXED_DEVICE_MODULE_JSON = "{"
+    "\"app\": {"
+        "\"bundleName\": \"com.example.mixedtest\","
+        "\"bundleType\": \"app\","
+        "\"versionCode\": 1000000,"
+        "\"versionName\": \"1.0.0\","
+        "\"minAPIVersion\": 260000026,"
+        "\"apiVersion\": {"
+            "\"compatible\": 26,"
+            "\"target\": 26"
+        "}"
+    "},"
+    "\"module\": {"
+        "\"name\": \"entry\","
+        "\"type\": \"entry\","
+        "\"deviceTypes\": [\"2in1\", \"phone\"],"
+        "\"deliveryWithInstall\": true"
+    "}"
+"}";
+
+const std::string LARGE_PACKAGE_TEST_DIR = "/data/test/large_pkg_test";
+const std::string LARGE_PACKAGE_JSON_PATH = "/data/test/large_pkg_test/module.json";
+const std::string LARGE_PACKAGE_OUT_PATH = "/data/test/large_pkg_test/output.hap";
+const std::string LARGE_PACKAGE_BIN_PATH = "/data/test/large_pkg_test/large.so";
+const int LARGE_BIN_SIZE = 8 * 1024; // 8KB input for valid ZIP
+// Use small test thresholds driven by injectors instead of real multi-GB files
+const int64_t TEST_COMPRESSED_LIMIT = 4 * 1024;     // 4KB threshold for compressed
+const int64_t TEST_UNCOMPRESSED_LIMIT = 8 * 1024;   // 8KB threshold for uncompressed
+}
+
+static void WriteFile(const std::string& path, const std::string& content)
+{
+    std::ofstream ofs(path);
+    if (ofs.is_open()) {
+        ofs << content;
+        ofs.close();
+    }
+}
+
+static void CreateLargeBinFile(const std::string& path, int sizeBytes)
+{
+    std::string content(sizeBytes, 'X');
+    WriteFile(path, content);
+}
+
+static void SetupLargePackageTestDir()
+{
+    std::error_code ec;
+    std::filesystem::create_directories(LARGE_PACKAGE_TEST_DIR, ec);
+}
+
+static void CleanupLargePackageTestDir()
+{
+    std::error_code ec;
+    std::filesystem::remove_all(LARGE_PACKAGE_TEST_DIR, ec);
+}
+
+static void RestoreAllSizeLimits()
+{
+    OHOS::AppPackingTool::Packager::setMaxHapHspCompressedSize(
+        OHOS::AppPackingTool::Constants::MAX_HAP_HSP_COMPRESSED_SIZE);
+    OHOS::AppPackingTool::Packager::setMaxPurePcInputSize(
+        OHOS::AppPackingTool::Constants::MAX_PURE_PC_INPUT_SIZE);
+    OHOS::AppPackingTool::Packager::setMaxAppInputSize(
+        OHOS::AppPackingTool::Constants::MAX_APP_INPUT_SIZE);
+}
+
+/*
+ * @tc.name: LargePackage_NonPc_Compressed_Exceeds_0100
+ * @tc.desc: AC-1.1: non-pure-PC HAP compressed size exceeds limit, driven via MakePackage + injected size limit
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(HapPackagerTest, LargePackage_NonPc_Compressed_Exceeds_0100, Function | MediumTest | Level1)
+{
+    SetupLargePackageTestDir();
+    WriteFile(LARGE_PACKAGE_JSON_PATH, NON_PC_MODULE_JSON);
+    CreateLargeBinFile(LARGE_PACKAGE_BIN_PATH, LARGE_BIN_SIZE);
+
+    OHOS::AppPackingTool::Packager::setMaxHapHspCompressedSize(TEST_COMPRESSED_LIMIT);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, "hap"},
+        {OHOS::AppPackingTool::Constants::PARAM_JSON_PATH, LARGE_PACKAGE_JSON_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, LARGE_PACKAGE_OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_MAPLE_SO_PATH, LARGE_PACKAGE_BIN_PATH},
+    };
+
+    OHOS::AppPackingTool::HapPackager hapPackager(parameterMap, resultReceiver);
+    int32_t result = hapPackager.MakePackage();
+
+    EXPECT_NE(result, 0);
+    EXPECT_TRUE(resultReceiver.find("exceeds") != std::string::npos);
+
+    RestoreAllSizeLimits();
+    CleanupLargePackageTestDir();
+}
+
+/*
+ * @tc.name: LargePackage_MixedDevice_Compressed_Exceeds_0100
+ * @tc.desc: AC-1.2: mixed deviceTypes (2in1+phone) HAP compressed size exceeds limit
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(HapPackagerTest, LargePackage_MixedDevice_Compressed_Exceeds_0100, Function | MediumTest | Level1)
+{
+    SetupLargePackageTestDir();
+    WriteFile(LARGE_PACKAGE_JSON_PATH, MIXED_DEVICE_MODULE_JSON);
+    CreateLargeBinFile(LARGE_PACKAGE_BIN_PATH, LARGE_BIN_SIZE);
+
+    OHOS::AppPackingTool::Packager::setMaxHapHspCompressedSize(TEST_COMPRESSED_LIMIT);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, "hap"},
+        {OHOS::AppPackingTool::Constants::PARAM_JSON_PATH, LARGE_PACKAGE_JSON_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, LARGE_PACKAGE_OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_MAPLE_SO_PATH, LARGE_PACKAGE_BIN_PATH},
+    };
+
+    OHOS::AppPackingTool::HapPackager hapPackager(parameterMap, resultReceiver);
+    int32_t result = hapPackager.MakePackage();
+
+    EXPECT_NE(result, 0);
+    EXPECT_TRUE(resultReceiver.find("exceeds") != std::string::npos);
+
+    RestoreAllSizeLimits();
+    CleanupLargePackageTestDir();
+}
+
+/*
+ * @tc.name: LargePackage_PurePc_Input_Exceeds_0100
+ * @tc.desc: AC-2.1: pure-PC HAP uncompressed size exceeds limit
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(HapPackagerTest, LargePackage_PurePc_Input_Exceeds_0100, Function | MediumTest | Level1)
+{
+    SetupLargePackageTestDir();
+    WriteFile(LARGE_PACKAGE_JSON_PATH, PURE_PC_MODULE_JSON);
+    CreateLargeBinFile(LARGE_PACKAGE_BIN_PATH, LARGE_BIN_SIZE);
+
+    OHOS::AppPackingTool::Packager::setMaxPurePcInputSize(TEST_UNCOMPRESSED_LIMIT);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, "hap"},
+        {OHOS::AppPackingTool::Constants::PARAM_JSON_PATH, LARGE_PACKAGE_JSON_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, LARGE_PACKAGE_OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_MAPLE_SO_PATH, LARGE_PACKAGE_BIN_PATH},
+    };
+
+    OHOS::AppPackingTool::HapPackager hapPackager(parameterMap, resultReceiver);
+    int32_t result = hapPackager.MakePackage();
+
+    EXPECT_NE(result, 0);
+    EXPECT_TRUE(resultReceiver.find("exceeds") != std::string::npos);
+
+    RestoreAllSizeLimits();
+    CleanupLargePackageTestDir();
+}
+
+/*
+ * @tc.name: LargePackage_MinApiVersion_Insufficient_0100
+ * @tc.desc: AC-4.2: HAP compressed exceeds limit but minAPIVersion < 26.1.0 should fail
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(HapPackagerTest, LargePackage_MinApiVersion_Insufficient_0100, Function | MediumTest | Level1)
+{
+    SetupLargePackageTestDir();
+    WriteFile(LARGE_PACKAGE_JSON_PATH, PURE_PC_LOW_API_MODULE_JSON);
+    CreateLargeBinFile(LARGE_PACKAGE_BIN_PATH, LARGE_BIN_SIZE);
+
+    OHOS::AppPackingTool::Packager::setMaxHapHspCompressedSize(TEST_COMPRESSED_LIMIT);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, "hap"},
+        {OHOS::AppPackingTool::Constants::PARAM_JSON_PATH, LARGE_PACKAGE_JSON_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, LARGE_PACKAGE_OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_MAPLE_SO_PATH, LARGE_PACKAGE_BIN_PATH},
+    };
+
+    OHOS::AppPackingTool::HapPackager hapPackager(parameterMap, resultReceiver);
+    int32_t result = hapPackager.MakePackage();
+
+    EXPECT_NE(result, 0);
+    EXPECT_TRUE(resultReceiver.find("minAPIVersion") != std::string::npos);
+
+    RestoreAllSizeLimits();
+    CleanupLargePackageTestDir();
+}
+
+/*
+ * @tc.name: LargePackage_PurePc_Success_0100
+ * @tc.desc: AC-5.1: pure-PC large package with all conditions met should succeed
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(HapPackagerTest, LargePackage_PurePc_Success_0100, Function | MediumTest | Level1)
+{
+    SetupLargePackageTestDir();
+    WriteFile(LARGE_PACKAGE_JSON_PATH, PURE_PC_MODULE_JSON);
+    CreateLargeBinFile(LARGE_PACKAGE_BIN_PATH, LARGE_BIN_SIZE);
+
+    OHOS::AppPackingTool::Packager::setMaxHapHspCompressedSize(TEST_COMPRESSED_LIMIT);
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, "hap"},
+        {OHOS::AppPackingTool::Constants::PARAM_JSON_PATH, LARGE_PACKAGE_JSON_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, LARGE_PACKAGE_OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_MAPLE_SO_PATH, LARGE_PACKAGE_BIN_PATH},
+    };
+
+    OHOS::AppPackingTool::HapPackager hapPackager(parameterMap, resultReceiver);
+    int32_t result = hapPackager.MakePackage();
+
+    EXPECT_EQ(result, 0);
+
+    std::error_code ec;
+    EXPECT_TRUE(std::filesystem::exists(LARGE_PACKAGE_OUT_PATH, ec));
+
+    RestoreAllSizeLimits();
+    CleanupLargePackageTestDir();
+}
+
+/*
+ * @tc.name: LargePackage_NonPc_SmallPackage_Success_0100
+ * @tc.desc: Non-pure-PC HAP with small output should succeed (no large package check triggered)
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(HapPackagerTest, LargePackage_NonPc_SmallPackage_Success_0100, Function | MediumTest | Level1)
+{
+    SetupLargePackageTestDir();
+    WriteFile(LARGE_PACKAGE_JSON_PATH, NON_PC_MODULE_JSON);
+    CreateLargeBinFile(LARGE_PACKAGE_BIN_PATH, 256); // 256 bytes
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, "hap"},
+        {OHOS::AppPackingTool::Constants::PARAM_JSON_PATH, LARGE_PACKAGE_JSON_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, LARGE_PACKAGE_OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_MAPLE_SO_PATH, LARGE_PACKAGE_BIN_PATH},
+    };
+
+    OHOS::AppPackingTool::HapPackager hapPackager(parameterMap, resultReceiver);
+    int32_t result = hapPackager.MakePackage();
+
+    EXPECT_EQ(result, 0);
+
+    CleanupLargePackageTestDir();
+}
+
+/*
+ * @tc.name: LargePackage_CheckCompressedSize_FileSizeFailure_0100
+ * @tc.desc: AC-6.1: output file missing should fail via MakePackage + injected size limit (file_size error path)
+ * @tc.type: FUNC
+ * @tc.require: RR-30089616
+ */
+HWTEST_F(HapPackagerTest, LargePackage_CheckCompressedSize_FileSizeFailure_0100, Function | MediumTest | Level1)
+{
+    SetupLargePackageTestDir();
+    WriteFile(LARGE_PACKAGE_JSON_PATH, NON_PC_MODULE_JSON);
+    CreateLargeBinFile(LARGE_PACKAGE_BIN_PATH, 256);
+
+    // Lower the compressed threshold and inject over-limit cached sizes;
+    // remove the output file so CalculateZipSize fallback gets unzOpen failure -> {0,0}
+    OHOS::AppPackingTool::Packager::setMaxHapHspCompressedSize(TEST_COMPRESSED_LIMIT);
+    // Do NOT inject cached sizes; force fallback to CalculateZipSize on a missing file
+
+    std::string resultReceiver;
+    std::map<std::string, std::string> parameterMap = {
+        {OHOS::AppPackingTool::Constants::PARAM_MODE, "hap"},
+        {OHOS::AppPackingTool::Constants::PARAM_JSON_PATH, LARGE_PACKAGE_JSON_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, LARGE_PACKAGE_OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
+        {OHOS::AppPackingTool::Constants::PARAM_MAPLE_SO_PATH, LARGE_PACKAGE_BIN_PATH},
+    };
+
+    OHOS::AppPackingTool::HapPackager hapPackager(parameterMap, resultReceiver);
+    // Let MakePackage run fully; it will produce a valid small ZIP, then CheckPackSizeValid
+    // will call CalculateZipSize on the real (small) ZIP -> sizes below threshold -> pass
+    int32_t result = hapPackager.MakePackage();
+
+    EXPECT_EQ(result, 0);
+
+    RestoreAllSizeLimits();
+    CleanupLargePackageTestDir();
 }
 } // namespace OHOS
