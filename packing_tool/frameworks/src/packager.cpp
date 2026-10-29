@@ -35,6 +35,10 @@ namespace AppPackingTool {
 
 int32_t Packager::atomicServiceEntrySizeLimit_ = 2048;
 int32_t Packager::atomicServiceNonEntrySizeLimit_ = 2048;
+int64_t Packager::maxPurePcInputSize_ = Constants::MAX_PURE_PC_INPUT_SIZE;
+int64_t Packager::maxAppInputSize_ = Constants::MAX_APP_INPUT_SIZE;
+int64_t Packager::maxHapHspCompressedSize_ = Constants::MAX_HAP_HSP_COMPRESSED_SIZE;
+std::optional<std::pair<int64_t, int64_t>> Packager::cachedZipSizes_;
 
 namespace {
 const std::string EN_US_UTF_8 = "en_US.UTF-8";
@@ -71,6 +75,7 @@ Packager::~Packager()
 
 int32_t Packager::MakePackage()
 {
+    ClearCachedZipSizes();
     buildHashTempDir_.clear();
     TempDirGuard buildHashTempDirGuard(buildHashTempDir_);
     int32_t ret = ERR_OK;
@@ -105,6 +110,15 @@ int32_t Packager::MakePackage()
         LOGE("%s", PackingToolErrMsg::EXECUTE_PACKING_TOOL_FAILED.toStringWithArgs(
             "Compress failed.").c_str());
         return ret;
+    }
+
+    if (!CheckPackSizeValid()) {
+        std::string outPath;
+        auto outIt = parameterMap_.find(Constants::PARAM_OUT_PATH);
+        if (outIt != parameterMap_.end()) {
+            RemoveOutputFileIfRegular(outIt->second);
+        }
+        return ERR_INVALID_VALUE;
     }
 
     ScanSoFiles();
@@ -439,6 +453,161 @@ void Packager::RemoveOutputFileIfRegular(const std::string &outPath)
     }
 }
 
+bool Packager::CheckPackSizeValid()
+{
+    std::string outPath;
+    auto outIt = parameterMap_.find(Constants::PARAM_OUT_PATH);
+    if (outIt == parameterMap_.end() || outIt->second.empty()) {
+        return true;
+    }
+    outPath = outIt->second;
+    int64_t compressedSize;
+    int64_t uncompressedSize;
+    if (cachedZipSizes_.has_value()) {
+        compressedSize = cachedZipSizes_->first;
+        uncompressedSize = cachedZipSizes_->second;
+        ClearCachedZipSizes();
+    } else {
+        auto sizes = Utils::CalculateZipSize(outPath);
+        compressedSize = sizes.first;
+        uncompressedSize = sizes.second;
+    }
+    if (!CheckHapHspUncompressedSize(uncompressedSize)) {
+        return false;
+    }
+    if (!CheckHapHspCompressedSize(compressedSize)) {
+        return false;
+    }
+    if (!CheckAppUncompressedSizeValid(uncompressedSize)) {
+        return false;
+    }
+    return true;
+}
+
+bool Packager::IsHapHspMode()
+{
+    auto modeIt = parameterMap_.find(Constants::PARAM_MODE);
+    if (modeIt == parameterMap_.end()) {
+        return false;
+    }
+    return modeIt->second == Constants::MODE_HAP || modeIt->second == Constants::MODE_HSP;
+}
+
+void Packager::ReportSizeExceedsLimit(const std::string& errMsg)
+{
+    std::string fullMsg = PackingToolErrMsg::HAP_HSP_COMPRESSED_SIZE_EXCEEDS_LIMIT.toStringWithArgs(errMsg.c_str());
+    LOGE("%s", fullMsg.c_str());
+    resultReceiver_.append(fullMsg + "\n");
+}
+
+bool Packager::CheckHapHspUncompressedSize(int64_t uncompressedSize)
+{
+    if (!IsHapHspMode()) {
+        return true;
+    }
+    std::list<std::string> deviceTypes;
+    auto jsonIt = parameterMap_.find(Constants::PARAM_JSON_PATH);
+    if (jsonIt != parameterMap_.end() && !jsonIt->second.empty()) {
+        ModuleJson moduleJson;
+        if (moduleJson.ParseFromFile(jsonIt->second)) {
+            moduleJson.GetStageDeviceTypes(deviceTypes);
+        }
+    }
+    if (Utils::IsPurePcModule(deviceTypes) && uncompressedSize > maxPurePcInputSize_) {
+        int64_t limitGb = maxPurePcInputSize_ / (1024 * 1024 * 1024);
+        std::string errMsg = "Pure PC HAP/HSP uncompressed size is " + std::to_string(uncompressedSize) +
+            " bytes, exceeds " + std::to_string(limitGb) + "GB limit.";
+        std::string fullMsg = PackingToolErrMsg::PURE_PC_INPUT_SIZE_EXCEEDS_LIMIT.toStringWithArgs(errMsg.c_str());
+        LOGE("%s", fullMsg.c_str());
+        resultReceiver_.append(fullMsg + "\n");
+        return false;
+    }
+    return true;
+}
+
+bool Packager::CheckHapHspCompressedSize(int64_t compressedSize)
+{
+    if (!IsHapHspMode()) {
+        return true;
+    }
+    if (compressedSize <= maxHapHspCompressedSize_) {
+        return true;
+    }
+    auto jsonIt = parameterMap_.find(Constants::PARAM_JSON_PATH);
+    if (jsonIt != parameterMap_.end() && !jsonIt->second.empty() &&
+        !JsonUtils::IsModuleJson(jsonIt->second)) {
+        int64_t limitGb = maxHapHspCompressedSize_ / (1024 * 1024 * 1024);
+        std::string errMsg = "HAP/HSP compressed size is " + std::to_string(compressedSize) +
+            " bytes, exceeds " + std::to_string(limitGb) +
+            "GB limit. FA model (config.json) does not support large packages.";
+        ReportSizeExceedsLimit(errMsg);
+        return false;
+    }
+    std::list<std::string> deviceTypes;
+    ModuleJson moduleJson;
+    bool parsed = false;
+    if (jsonIt != parameterMap_.end() && !jsonIt->second.empty()) {
+        parsed = moduleJson.ParseFromFile(jsonIt->second);
+        if (parsed) {
+            moduleJson.GetStageDeviceTypes(deviceTypes);
+        }
+    }
+    if (!Utils::IsPurePcModule(deviceTypes)) {
+        int64_t limitGb = maxHapHspCompressedSize_ / (1024 * 1024 * 1024);
+        std::string errMsg = "HAP/HSP compressed size is " + std::to_string(compressedSize) +
+            " bytes, exceeds " + std::to_string(limitGb) + "GB limit for non-pure-PC module.";
+        ReportSizeExceedsLimit(errMsg);
+        return false;
+    }
+    if (parsed && !CheckMinApiVersionForLargePackage(moduleJson)) {
+        return false;
+    }
+    return true;
+}
+
+bool Packager::CheckAppUncompressedSizeValid(int64_t uncompressedSize)
+{
+    std::string packMode;
+    auto modeIt = parameterMap_.find(Constants::PARAM_MODE);
+    if (modeIt == parameterMap_.end()) {
+        return true;
+    }
+    packMode = modeIt->second;
+    if (packMode != Constants::MODE_APP && packMode != Constants::MODE_FAST_APP &&
+        packMode != Constants::MODE_MULTIAPP && packMode != Constants::MODE_INSTALLER) {
+        return true;
+    }
+    if (uncompressedSize > maxAppInputSize_) {
+        int64_t limitGb = maxAppInputSize_ / (1024 * 1024 * 1024);
+        std::string errMsg = "APP uncompressed size is " + std::to_string(uncompressedSize) +
+            " bytes, exceeds " + std::to_string(limitGb) + "GB limit.";
+        std::string fullMsg = PackingToolErrMsg::APP_INPUT_SIZE_EXCEEDS_LIMIT.toStringWithArgs(errMsg.c_str());
+        LOGE("%s", fullMsg.c_str());
+        resultReceiver_.append(fullMsg + "\n");
+        return false;
+    }
+    return true;
+}
+
+bool Packager::CheckMinApiVersionForLargePackage(ModuleJson& moduleJson)
+{
+    int32_t apiVersion = -1;
+    if (!moduleJson.GetMinApiVersion(apiVersion)) {
+        LOGE("Packager::CheckMinApiVersionForLargePackage: GetMinApiVersion failed.");
+    }
+    if (apiVersion < 0 || apiVersion < Constants::MIN_API_VERSION_LARGE_PACKAGE) {
+        std::string errMsg = "HAP/HSP compressed size exceeds 4GB, but minAPIVersion is " +
+            std::to_string(apiVersion) +
+            ", lower than required version 26.1.0 for large package.";
+        std::string fullMsg = PackingToolErrMsg::MIN_API_VERSION_INSUFFICIENT_FOR_LARGE_PACKAGE.toStringWithArgs(
+            errMsg.c_str());
+        LOGE("%s", fullMsg.c_str());
+        resultReceiver_.append(fullMsg + "\n");
+        return false;
+    }
+    return true;
+}
+
 bool Packager::SetGenerateBuildHash(std::string &jsonPath, bool &generateBuildHash, bool &buildHashFinish)
 {
     if (!fs::exists(jsonPath)) {
@@ -742,6 +911,51 @@ int32_t Packager::getAtomicServiceNonEntrySizeLimit()
 void Packager::setAtomicServiceNonEntrySizeLimit(int32_t atomicServiceNonEntrySizeLimit)
 {
     atomicServiceNonEntrySizeLimit_ = atomicServiceNonEntrySizeLimit;
+}
+
+int64_t Packager::getMaxPurePcInputSize()
+{
+    return maxPurePcInputSize_;
+}
+
+void Packager::setMaxPurePcInputSize(int64_t maxPurePcInputSize)
+{
+    maxPurePcInputSize_ = maxPurePcInputSize;
+}
+
+int64_t Packager::getMaxAppInputSize()
+{
+    return maxAppInputSize_;
+}
+
+void Packager::setMaxAppInputSize(int64_t maxAppInputSize)
+{
+    maxAppInputSize_ = maxAppInputSize;
+}
+
+int64_t Packager::getMaxHapHspCompressedSize()
+{
+    return maxHapHspCompressedSize_;
+}
+
+void Packager::setMaxHapHspCompressedSize(int64_t maxHapHspCompressedSize)
+{
+    maxHapHspCompressedSize_ = maxHapHspCompressedSize;
+}
+
+std::optional<std::pair<int64_t, int64_t>> Packager::GetCachedZipSizes()
+{
+    return cachedZipSizes_;
+}
+
+void Packager::SetCachedZipSizes(int64_t compressedSize, int64_t uncompressedSize)
+{
+    cachedZipSizes_ = std::make_pair(compressedSize, uncompressedSize);
+}
+
+void Packager::ClearCachedZipSizes()
+{
+    cachedZipSizes_.reset();
 }
 
 void Packager::ScanSoFiles()

@@ -34,6 +34,7 @@
 #include "pt_json.h"
 #include "constants.h"
 #include "error/packing_tool_err_msg.h"
+#include "zip_utils.h"
 
 using packing_tool::error::PackingToolErrMsg;
 
@@ -587,6 +588,42 @@ bool Utils::IsPathValid(const std::string &path, const bool &isFile, const std::
         LOGW("Param parse error.");
         return false;
     }
+}
+
+bool Utils::IsPurePcModule(const std::list<std::string>& deviceTypes)
+{
+    if (deviceTypes.empty() || deviceTypes.size() != 1) {
+        return false;
+    }
+    return deviceTypes.front() == Constants::DEVICE_TYPE_PC;
+}
+
+std::pair<int64_t, int64_t> Utils::CalculateZipSize(const std::string& outPath)
+{
+    int64_t compressedSize = 0;
+    int64_t uncompressedSize = 0;
+    unzFile zipApp = unzOpen(outPath.c_str());
+    if (!zipApp) {
+        LOGW("Utils::CalculateZipSize: unzOpen failed: %s", outPath.c_str());
+        return {0, 0};
+    }
+    if (unzGoToFirstFile(zipApp) != UNZ_OK) {
+        unzClose(zipApp);
+        LOGW("Utils::CalculateZipSize: unzGoToFirstFile failed: %s", outPath.c_str());
+        return {0, 0};
+    }
+    do {
+        unz_file_info fileInfo;
+        if (unzGetCurrentFileInfo(zipApp, &fileInfo, nullptr, 0, nullptr, 0, nullptr, 0) != UNZ_OK) {
+            unzClose(zipApp);
+            LOGW("Utils::CalculateZipSize: unzGetCurrentFileInfo failed: %s", outPath.c_str());
+            return {compressedSize, uncompressedSize};
+        }
+        compressedSize += static_cast<int64_t>(fileInfo.compressed_size);
+        uncompressedSize += static_cast<int64_t>(fileInfo.uncompressed_size);
+    } while (unzGoToNextFile(zipApp) == UNZ_OK);
+    unzClose(zipApp);
+    return {compressedSize, uncompressedSize};
 }
 } // namespace AppPackingTool
 } // namespace OHOS

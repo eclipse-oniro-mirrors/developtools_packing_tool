@@ -21,11 +21,14 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <optional>
 #include <regex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "constants.h"
+#include "error/error_msg.h"
 #include "json/module_json.h"
 
 namespace fs = std::filesystem;
@@ -57,6 +60,15 @@ public:
     static void setAtomicServiceEntrySizeLimit(int32_t atomicServiceEntrySizeLimit);
     static int32_t getAtomicServiceNonEntrySizeLimit();
     static void setAtomicServiceNonEntrySizeLimit(int32_t atomicServiceNonEntrySizeLimit);
+    static int64_t getMaxPurePcInputSize();
+    static void setMaxPurePcInputSize(int64_t maxPurePcInputSize);
+    static int64_t getMaxAppInputSize();
+    static void setMaxAppInputSize(int64_t maxAppInputSize);
+    static int64_t getMaxHapHspCompressedSize();
+    static void setMaxHapHspCompressedSize(int64_t maxHapHspCompressedSize);
+    static std::optional<std::pair<int64_t, int64_t>> GetCachedZipSizes();
+    static void SetCachedZipSizes(int64_t compressedSize, int64_t uncompressedSize);
+    static void ClearCachedZipSizes();
 
     virtual int32_t InitAllowedParam() = 0;
     virtual int32_t PreProcess() = 0;
@@ -87,6 +99,13 @@ protected:
     bool EnsureParentDirectoryExists(const std::filesystem::path& filePath);
     bool IsOutPathValid(const std::string &outPath, const std::string &forceRewrite, const std::string &suffix);
     void RemoveOutputFileIfRegular(const std::string &outPath);
+    bool CheckPackSizeValid();
+    bool CheckHapHspUncompressedSize(int64_t uncompressedSize);
+    bool CheckHapHspCompressedSize(int64_t compressedSize);
+    bool CheckAppUncompressedSizeValid(int64_t uncompressedSize);
+    bool CheckMinApiVersionForLargePackage(ModuleJson& moduleJson);
+    bool IsHapHspMode();
+    void ReportSizeExceedsLimit(const std::string& errMsg);
     bool SetGenerateBuildHash(std::string &jsonPath, bool &generateBuildHash, bool &buildHashFinish);
     bool CopyFileToTempDir(std::string &jsonPath);
     bool BuildHash(bool &buildHashFinish, const bool &generateBuildHash,
@@ -106,6 +125,10 @@ private:
 private:
     static int32_t atomicServiceEntrySizeLimit_;
     static int32_t atomicServiceNonEntrySizeLimit_;
+    static int64_t maxPurePcInputSize_;
+    static int64_t maxAppInputSize_;
+    static int64_t maxHapHspCompressedSize_;
+    static std::optional<std::pair<int64_t, int64_t>> cachedZipSizes_;
 };
 
 }  // namespace AppExecFwk

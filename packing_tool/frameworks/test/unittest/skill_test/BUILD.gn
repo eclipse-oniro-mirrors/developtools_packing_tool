@@ -48,6 +48,7 @@ ohos_unittest("skill_test") {
     "cJSON:cjson_static",
     "hilog:libhilog",
     "openssl:libcrypto_shared",
+    "zlib:libz",
   ]
 }
 

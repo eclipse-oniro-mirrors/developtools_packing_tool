@@ -56,6 +56,7 @@ ohos_unittest("multiapp_packager_test") {
     "../../../src/log.cpp",
     "../../../src/multiapp_packager.cpp",
     "../../../src/packager.cpp",
+    "../../../src/scan_statdulpicate.cpp",
     "../../../src/unzip_wrapper.cpp",
     "../../../src/utils.cpp",
     "../../../src/zip_utils.cpp",
@@ -67,6 +68,7 @@ ohos_unittest("multiapp_packager_test") {
     "bounds_checking_function:libsec_static",
     "cJSON:cjson_static",
     "hilog:libhilog",
+    "json:nlohmann_json_static",
     "openssl:libcrypto_shared",
     "zlib:libz",
   ]

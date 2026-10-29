@@ -686,6 +686,29 @@ class FileUtils {
     }
 
     /**
+     * Calculate compressed and uncompressed size of a zip file by iterating entries.
+     *
+     * @param outPath the zip file path
+     * @return long array where [0] is compressed size and [1] is uncompressed size
+     * @throws IOException if the zip file cannot be read
+     */
+    static long[] calculateZipSize(String outPath) throws IOException {
+        long compressedSize = 0L;
+        long uncompressedSize = 0L;
+        try (ZipFile zipApp = new ZipFile(outPath)) {
+            Enumeration<? extends ZipEntry> entries = zipApp.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                if (entry != null) {
+                    compressedSize += entry.getCompressedSize();
+                    uncompressedSize += entry.getSize();
+                }
+            }
+        }
+        return new long[] {compressedSize, uncompressedSize};
+    }
+
+    /**
      * Create a parent directory for a file
      *
      * @param file file

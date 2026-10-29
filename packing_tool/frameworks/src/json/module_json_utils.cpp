@@ -259,6 +259,8 @@ bool ModuleJsonUtils::CheckAppAtomicServiceCompressedSizeValid(std::map<std::str
             "ModuleJsonUtils::CheckAppAtomicServiceCompressedSizeValid: unzGoToFirstFile outPath failed!").c_str());
         return false;
     }
+    int64_t totalCompressedSize = 0;
+    int64_t totalUncompressedSize = 0;
     do {
         unz_file_info fileInfo;
         if (unzGetCurrentFileInfo(zipApp, &fileInfo, nullptr, 0, nullptr, 0, nullptr, 0) != UNZ_OK) {
@@ -277,6 +279,8 @@ bool ModuleJsonUtils::CheckAppAtomicServiceCompressedSizeValid(std::map<std::str
                 "failed to get file info (phase 2)").c_str());
             return false;
         }
+        totalCompressedSize += static_cast<int64_t>(fileInfo.compressed_size);
+        totalUncompressedSize += static_cast<int64_t>(fileInfo.uncompressed_size);
         std::string fileName(fileNameBuffer.data());
         auto it = hapVerifyInfoMap.find(fileName);
         if (it == hapVerifyInfoMap.end() || it->second == nullptr) {
@@ -286,6 +290,7 @@ bool ModuleJsonUtils::CheckAppAtomicServiceCompressedSizeValid(std::map<std::str
         hapVerifyInfos.push_back(*(it->second));
     } while (unzGoToNextFile(zipApp) == UNZ_OK);
     unzClose(zipApp);
+    Packager::SetCachedZipSizes(totalCompressedSize, totalUncompressedSize);
     if (hapVerifyInfos.empty()) {
         LOGI("ModuleJsonUtils::CheckAppAtomicServiceCompressedSizeValid: hapVerifyInfos is empty");
         return true;

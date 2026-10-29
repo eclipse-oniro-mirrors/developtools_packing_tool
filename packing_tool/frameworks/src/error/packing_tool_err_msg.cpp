@@ -871,5 +871,35 @@ const ErrorMsg PackingToolErrMsg::INSTALLER_IO_FAILED =
         "Installer file operation failed.", "[installer] %s",
         {"Check the reported path, file permissions and available disk space."});
 
+// ==================== Large package size check errors (Type: 07) ====================
+const ErrorMsg PackingToolErrMsg::HAP_HSP_COMPRESSED_SIZE_EXCEEDS_LIMIT =
+    BuildPackingToolError("07", "001",
+        "HAP/HSP compressed size exceeds 4GB limit for non-pure-PC module.", "%s",
+        {
+            "Please check the module deviceTypes and reduce the package size, "
+            "or use pure PC (2in1) device type.",
+        });
+
+const ErrorMsg PackingToolErrMsg::PURE_PC_INPUT_SIZE_EXCEEDS_LIMIT =
+    BuildPackingToolError("07", "002",
+        "HAP/HSP input size exceeds 200GB limit for pure-PC module.", "%s",
+        {
+            "Please reduce the input file size to within 200GB.",
+        });
+
+const ErrorMsg PackingToolErrMsg::APP_INPUT_SIZE_EXCEEDS_LIMIT =
+    BuildPackingToolError("07", "003",
+        "APP input size exceeds 200GB limit.", "%s",
+        {
+            "Please reduce the total input file size to within 200GB.",
+        });
+
+const ErrorMsg PackingToolErrMsg::MIN_API_VERSION_INSUFFICIENT_FOR_LARGE_PACKAGE =
+    BuildPackingToolError("07", "004",
+        "minAPIVersion is lower than required version 26.1.0 for large package.", "%s",
+        {
+            "Please set minAPIVersion in module.json to at least 26.1.0 "
+            "when packaging HAP/HSP larger than 4GB.",
+        });
 } // namespace error
 } // namespace packing_tool

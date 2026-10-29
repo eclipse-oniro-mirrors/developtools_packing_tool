@@ -84,6 +84,7 @@ final class InstallerPackager {
                 InstallerManifest.validate(manifest, packager.apps);
             }
             packager.write(manifest);
+            checkUncompressedSize(utility);
             return true;
         } catch (IOException | BundleException | RuntimeException exception) {
             report(exception);
@@ -228,6 +229,28 @@ final class InstallerPackager {
             app.put("minAPIVersion", minApi);
             app.put("path", "Contents/" + name);
             apps.add(app);
+        }
+    }
+
+    private static void checkUncompressedSize(Utility utility) throws BundleException {
+        String outPath = utility.getOutPath();
+        if (outPath.isEmpty()) {
+            return;
+        }
+        long uncompressedSize;
+        try {
+            long[] sizes = FileUtils.calculateZipSize(outPath);
+            uncompressedSize = sizes[1];
+        } catch (IOException exception) {
+            throw new InstallerManifest.Failure(
+                    PackingToolErrMsg.INSTALLER_IO_FAILED,
+                    "Cannot read installer output: " + outPath, exception);
+        }
+        if (uncompressedSize > Constants.MAX_APP_INPUT_SIZE) {
+            String errMsg = "Installer uncompressed size is " + uncompressedSize +
+                    " bytes, exceeds 200GB limit.";
+            LOG.error(PackingToolErrMsg.APP_INPUT_SIZE_EXCEEDS_LIMIT.toString(errMsg));
+            throw new BundleException("Installer uncompressed size exceeds 200GB limit.");
         }
     }
 

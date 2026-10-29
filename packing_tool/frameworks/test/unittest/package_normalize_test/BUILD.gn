@@ -51,6 +51,7 @@ ohos_unittest("package_normalize_test") {
     "../../../src/log.cpp",
     "../../../src/package_normalize.cpp",
     "../../../src/packager.cpp",
+    "../../../src/scan_statdulpicate.cpp",
     "../../../src/skill_pack_helper.cpp",
     "../../../src/unzip_wrapper.cpp",
     "../../../src/utils.cpp",
@@ -64,6 +65,7 @@ ohos_unittest("package_normalize_test") {
     "bounds_checking_function:libsec_static",
     "cJSON:cjson_static",
     "hilog:libhilog",
+    "json:nlohmann_json_static",
     "openssl:libcrypto_shared",
     "zlib:libz",
   ]

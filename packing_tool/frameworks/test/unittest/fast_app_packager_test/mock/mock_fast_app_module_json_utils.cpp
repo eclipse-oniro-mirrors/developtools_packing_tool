@@ -24,6 +24,7 @@
 #include "log.h"
 #include "mock_fast_app_module_json_utils.h"
 #include "module_json.h"
+#include "packager.h"
 #include "utils.h"
 #include "zip_utils.h"
 
@@ -268,6 +269,8 @@ bool ProcessZipFile(const std::string& outPath,
         return false;
     }
 
+    int64_t totalCompressedSize = 0;
+    int64_t totalUncompressedSize = 0;
     do {
         unz_file_info fileInfo;
         if (unzGetCurrentFileInfo(zipApp, &fileInfo, nullptr, 0, nullptr, 0, nullptr, 0) != UNZ_OK) {
@@ -284,6 +287,9 @@ bool ProcessZipFile(const std::string& outPath,
             return false;
         }
 
+        totalCompressedSize += static_cast<int64_t>(fileInfo.compressed_size);
+        totalUncompressedSize += static_cast<int64_t>(fileInfo.uncompressed_size);
+
         std::string fileName(fileNameBuffer.data());
         auto it = hapVerifyInfoMap.find(fileName);
         if (it == hapVerifyInfoMap.end() || it->second == nullptr) {
@@ -295,6 +301,7 @@ bool ProcessZipFile(const std::string& outPath,
     } while (unzGoToNextFile(zipApp) == UNZ_OK);
 
     unzClose(zipApp);
+    Packager::SetCachedZipSizes(totalCompressedSize, totalUncompressedSize);
     return true;
 }
 
