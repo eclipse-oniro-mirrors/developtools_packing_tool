@@ -2826,7 +2826,8 @@
             "type": "object",
             "propertyNames": {
               "enum": [
-                "path"
+                "path",
+                "permissionControlMode"
               ]
             },
             "required": [
@@ -2838,6 +2839,15 @@
                 "type": "string",
                 "maxLength": 128,
                 "pattern": "^(\\.?[a-zA-Z0-9_-]+(\\/\\.?[a-zA-Z0-9_-]+)*\\/)?[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_]+)?$"
+              },
+              "permissionControlMode": {
+                "description": "Permission control mode for executable binary. independent: declare permission independently(default); inheritParentProcess: inherit permission from parent process.",
+                "type": "string",
+                "enum": [
+                  "independent",
+                  "inheritParentProcess"
+                ],
+                "default": "independent"
               }
             }
           }
