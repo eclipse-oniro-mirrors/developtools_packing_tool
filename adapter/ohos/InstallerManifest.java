@@ -93,7 +93,7 @@ final class InstallerManifest {
     static byte[] generate(List<JSONObject> apps) {
         JSONObject manifest = new JSONObject(true);
         manifest.put("version", 1);
-        manifest.put("distributionType", "developerID");
+        manifest.put("distributionType", "developer_id");
         JSONArray entries = new JSONArray();
         for (int index = 0; index < apps.size(); ++index) {
             JSONObject entry = new JSONObject(true);
