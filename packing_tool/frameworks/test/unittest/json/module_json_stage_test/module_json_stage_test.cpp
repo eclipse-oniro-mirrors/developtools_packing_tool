@@ -2992,4 +2992,51 @@ HWTEST_F(ModuleJsonStageTest, GetStageAnyOfDeviceFeatureTypes_EmptyValues_0300, 
     EXPECT_TRUE(moduleJson.GetStageAnyOfDeviceFeatureTypes(deviceTypes));
     EXPECT_TRUE(deviceTypes.empty());
 }
+
+/*
+ * @tc.name: GetStageHapVerifyInfoAutoControlIntent_0100
+ * @tc.desc: Parse true/false and use false for an omitted field, including reused output objects.
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(ModuleJsonStageTest, GetStageHapVerifyInfoAutoControlIntent_0100, Function | MediumTest | Level1)
+{
+    ModuleJson moduleJson;
+    HapVerifyInfo info;
+    const std::string appFields = R"("bundleName":"com.example.app","versionCode":1,"versionName":"1.0",)"
+        R"("minAPIVersion":12,"targetAPIVersion":12,"apiReleaseType":"Release")";
+    for (const std::string field : {",\"allowAutoControlIntent\":true", ",\"allowAutoControlIntent\":false", ""}) {
+        SCOPED_TRACE(field);
+        moduleJson.Release();
+        ASSERT_TRUE(moduleJson.ParseFromString("{\"app\":{" + appFields + field + "},"
+            "\"module\":{\"name\":\"entry\",\"type\":\"entry\",\"deviceTypes\":[\"default\"],"
+            "\"deliveryWithInstall\":true,\"installationFree\":false}}"));
+        info.SetAllowAutoControlIntent(true);
+        EXPECT_TRUE(moduleJson.GetStageHapVerifyInfo(info));
+        EXPECT_EQ(info.IsAllowAutoControlIntent(), field == ",\"allowAutoControlIntent\":true");
+    }
+}
+
+/*
+ * @tc.name: GetStageHapVerifyInfoAutoControlIntent_0200
+ * @tc.desc: Reject non-boolean declarations instead of coercing them to a valid value.
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(ModuleJsonStageTest, GetStageHapVerifyInfoAutoControlIntent_0200, Function | MediumTest | Level1)
+{
+    ModuleJson moduleJson;
+    HapVerifyInfo info;
+    for (const std::string value : {"1", "0", "\"true\"", "null", "[]", "{}"}) {
+        SCOPED_TRACE(value);
+        moduleJson.Release();
+        ASSERT_TRUE(moduleJson.ParseFromString("{\"app\":{\"bundleName\":\"com.example.app\","
+            "\"versionCode\":1,\"versionName\":\"1.0\",\"minAPIVersion\":12,\"targetAPIVersion\":12,"
+            "\"apiReleaseType\":\"Release\",\"allowAutoControlIntent\":" + value + "},"
+            "\"module\":{\"name\":\"entry\",\"type\":\"entry\",\"deviceTypes\":[\"default\"],"
+            "\"deliveryWithInstall\":true,\"installationFree\":false}}"));
+        EXPECT_FALSE(moduleJson.GetStageHapVerifyInfo(info));
+    }
+}
+
 }

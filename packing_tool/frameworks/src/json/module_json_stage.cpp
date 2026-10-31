@@ -38,6 +38,7 @@ const std::string MIN_API_VERSION = "minAPIVersion";
 const std::string TARGET_API_VERSION = "targetAPIVersion";
 const std::string API_RELEASE_TYPE = "apiReleaseType";
 const std::string DEBUG = "debug";
+const std::string ALLOW_AUTO_CONTROL_INTENT = "allowAutoControlIntent";
 const std::string COMPATIBLE = "compatible";
 const std::string RELEASE_TYPE = "releaseType";
 const std::string DELIVERY_WITH_INSTALL = "deliveryWithInstall";
@@ -605,6 +606,24 @@ bool ModuleJson::GetStageDebugByAppObj(std::unique_ptr<PtJson>& appObj, bool& de
     return true;
 }
 
+bool ModuleJson::GetAllowAutoControlIntentByAppObj(std::unique_ptr<PtJson>& appObj, bool& allowAutoControlIntent)
+{
+    if (!appObj) {
+        LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs("App node is null!").c_str());
+        return false;
+    }
+    if (appObj->Contains(ALLOW_AUTO_CONTROL_INTENT.c_str())) {
+        if (appObj->GetBool(ALLOW_AUTO_CONTROL_INTENT.c_str(), &allowAutoControlIntent) != Result::SUCCESS) {
+            LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs(
+                "The allowAutoControlIntent parameter must be a boolean.").c_str());
+            return false;
+        }
+    } else {
+        allowAutoControlIntent = false;
+    }
+    return true;
+}
+
 // java: parseStageEntry / getDeviceTypesFromStageModule
 bool ModuleJson::GetStageEntry(std::list<std::string>& deviceTypes)
 {
@@ -971,6 +990,7 @@ bool ModuleJson::SetStageHapVerifyInfoByAppObj(std::unique_ptr<PtJson>& appObj, 
     std::string targetBundleName;
     int32_t targetPriority = 0;
     bool debug = false;
+    bool allowAutoControlIntent = false;
     MultiAppMode multiAppMode;
     std::list<std::string> assetAccessGroups;
     if (!GetVendorByAppObj(appObj, vendor)) {
@@ -1018,6 +1038,11 @@ bool ModuleJson::SetStageHapVerifyInfoByAppObj(std::unique_ptr<PtJson>& appObj, 
             "GetStageCompileSdkTypeByAppObj or GetStageCompileSdkVersionByAppObj failed!").c_str());
         return false;
     }
+    if (!GetAllowAutoControlIntentByAppObj(appObj, allowAutoControlIntent)) {
+        LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs(
+            "GetAllowAutoControlIntentByAppObj failed!").c_str());
+        return false;
+    }
     hapVerifyInfo.SetVendor(vendor);
     hapVerifyInfo.SetVersion(version);
     hapVerifyInfo.SetApiVersion(moduleApiVersion);
@@ -1025,6 +1050,7 @@ bool ModuleJson::SetStageHapVerifyInfoByAppObj(std::unique_ptr<PtJson>& appObj, 
     hapVerifyInfo.SetTargetPriority(targetPriority);
     hapVerifyInfo.SetDebug(debug);
     hapVerifyInfo.SetMultiAppMode(multiAppMode);
+    hapVerifyInfo.SetAllowAutoControlIntent(allowAutoControlIntent);
     hapVerifyInfo.SetAssetAccessGroups(assetAccessGroups);
     hapVerifyInfo.SetCompileSdkType(compileSdkType);
     hapVerifyInfo.SetCompileSdkVersion(compileSdkVersion);

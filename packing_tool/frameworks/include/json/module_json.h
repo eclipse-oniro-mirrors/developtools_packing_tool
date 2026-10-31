@@ -281,6 +281,8 @@ protected:
     bool SetFaHapVerifyInfoByModuleObj(std::unique_ptr<PtJson>& moduleObj, HapVerifyInfo& hapVerifyInfo);
 
 private:
+    bool GetAllowAutoControlIntentByAppObj(std::unique_ptr<PtJson>& appObj, bool& allowAutoControlIntent);
+
     std::unique_ptr<PtJson> root_ = nullptr;
 };
 }  // namespace AppPackingTool

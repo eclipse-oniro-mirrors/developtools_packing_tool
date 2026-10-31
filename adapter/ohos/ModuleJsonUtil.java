@@ -102,6 +102,7 @@ class ModuleJsonUtil {
     private static final String TARGET_API_VERSION = "targetAPIVersion";
     private static final String API_RELEASE_TYPE = "apiReleaseType";
     private static final String DEBUG = "debug";
+    private static final String ALLOW_AUTO_CONTROL_INTENT = "allowAutoControlIntent";
     private static final String COMPATIBLE = "compatible";
     private static final String RELEASE_TYPE = "releaseType";
     private static final String TARGET = "target";
@@ -1048,6 +1049,7 @@ class ModuleJsonUtil {
         hapVerifyInfo.setProxyDataUris(parseProxyDataUri(hapVerifyInfo.getProfileStr()));
         hapVerifyInfo.setContinueTypeMap(parseAbilityContinueTypeMap(hapVerifyInfo.getProfileStr()));
         hapVerifyInfo.setMultiAppMode(parseMultiAppMode(hapVerifyInfo.getProfileStr()));
+        hapVerifyInfo.setAllowAutoControlIntent(parseAllowAutoControlIntent(hapVerifyInfo.getProfileStr()));
     }
 
     /**
@@ -1095,6 +1097,20 @@ class ModuleJsonUtil {
             multiAppMode.setMaxCount(number != null ? number : 0);
         }
         return multiAppMode;
+    }
+
+    private static boolean parseAllowAutoControlIntent(String jsonString) throws BundleException {
+        JSONObject appObj = getAppObj(jsonString);
+        if (!appObj.containsKey(ALLOW_AUTO_CONTROL_INTENT)) {
+            return false;
+        }
+        Object value = appObj.get(ALLOW_AUTO_CONTROL_INTENT);
+        if (!(value instanceof Boolean)) {
+            String errMsg = "The allowAutoControlIntent parameter must be a boolean.";
+            LOG.error(PackingToolErrMsg.PARSE_STAGE_JSON_FAILED.toString(errMsg));
+            throw new BundleException(errMsg);
+        }
+        return (Boolean) value;
     }
 
     /**
