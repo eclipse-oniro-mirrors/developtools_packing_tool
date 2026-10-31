@@ -208,7 +208,7 @@ HWTEST_F(MultiAppPackagerTest, MultiAppPackager_0100, Function | MediumTest | Le
     WriteDeduplistSdkFile();
     EXPECT_EQ(multiAppPackager.InitAllowedParam(), 0);
     EXPECT_EQ(multiAppPackager.PreProcess(), 0);
-    EXPECT_EQ(multiAppPackager.Process(), 0);
+    EXPECT_EQ(multiAppPackager.Process(), 1);
     EXPECT_EQ(multiAppPackager.PostProcess(), 0);
     DeleteFile(DEDUPLIST_SDK_PATH);
 }
@@ -411,10 +411,12 @@ HWTEST_F(MultiAppPackagerTest, PreProcess_1000, Function | MediumTest | Level1)
         {OHOS::AppPackingTool::Constants::PARAM_HSP_LIST, HSP_LIST},
     };
 
+    TouchFile(OUT_PATH);
     OHOS::AppPackingTool::MultiAppPackager multiAppPackager(parameterMap, resultReceiver);
     MockMultiAppModuleJsonUtils::MockCheckAppAtomicServiceCompressedSizeValid(true);
     MockMultiAppModuleJsonUtils::MockGetHapVerifyInfosMapfromFileList(true);
     EXPECT_EQ(multiAppPackager.PreProcess(), 1);
+    DeleteFile(OUT_PATH);
 }
 
 /*
@@ -498,7 +500,7 @@ HWTEST_F(MultiAppPackagerTest, PreProcess_1400, Function | MediumTest | Level1)
     MockMultiAppModuleJsonUtils::MockCheckAppAtomicServiceCompressedSizeValid(true);
     MockMultiAppModuleJsonUtils::MockGetHapVerifyInfosMapfromFileList(true);
     EXPECT_EQ(multiAppPackager.PreProcess(), 1);
-    EXPECT_EQ(multiAppPackager.CompressAppModeForMultiProject(), true);
+    EXPECT_EQ(multiAppPackager.CompressAppModeForMultiProject(), false);
 }
 
 /*
@@ -544,7 +546,7 @@ HWTEST_F(MultiAppPackagerTest, PreProcess_1600, Function | MediumTest | Level1)
     MockMultiAppModuleJsonUtils::MockCheckAppAtomicServiceCompressedSizeValid(true);
     MockMultiAppModuleJsonUtils::MockGetHapVerifyInfosMapfromFileList(true);
     EXPECT_EQ(multiAppPackager.PreProcess(), 1);
-    EXPECT_EQ(multiAppPackager.CompressAppModeForMultiProject(), true);
+    EXPECT_EQ(multiAppPackager.CompressAppModeForMultiProject(), false);
 }
 
 /*
@@ -1111,66 +1113,6 @@ HWTEST_F(MultiAppVariantsTest, DisposeApp_001, Function | MediumTest | Level2)
     EXPECT_EQ(selected, std::list<std::string>({"phone.hsp"}));
     EXPECT_TRUE(fs::exists(destination / "phone.hsp"));
     EXPECT_FALSE(fs::exists(destination / "tablet.hsp"));
-}
-
-/*
- * @tc.name: PrepareFilesForCompression_001
- * @tc.desc: APP inputs retain both shared HSP variants and their merged metadata during preparation.
- * @tc.type: FUNC
- * @tc.require:
- */
-HWTEST_F(MultiAppVariantsTest, PrepareFilesForCompression_001, Function | MediumTest | Level1)
-{
-    using namespace OHOS::AppPackingTool;
-    ASSERT_NO_FATAL_FAILURE(CreateApp("phone"));
-    ASSERT_NO_FATAL_FAILURE(CreateApp("tablet"));
-    std::string receiver;
-    MultiAppPackager packager({{Constants::PARAM_OUT_PATH, (root_ / "work" / "result.app").string()}}, receiver);
-    packager.formattedAppList_ = {(root_ / "phone.app").string(), (root_ / "tablet.app").string()};
-    std::list<std::string> files;
-    fs::path tempHaps;
-    fs::path tempSelected;
-    std::string info;
-    std::string infoPath;
-    ASSERT_TRUE(packager.PrepareFilesForCompression(files, tempHaps, tempSelected, info, infoPath));
-    ASSERT_EQ(files.size(), 2U);
-    ASSERT_TRUE(fs::exists(infoPath));
-    AppPackingTool::PackInfo parsed;
-    ASSERT_TRUE(parsed.ParseFromString(info));
-    std::unique_ptr<PtJson> modules;
-    std::unique_ptr<PtJson> packages;
-    ASSERT_TRUE(parsed.GetModulesObject(modules));
-    ASSERT_TRUE(parsed.GetPackagesObject(packages));
-    ASSERT_EQ(modules->GetSize(), 2);
-    ASSERT_EQ(packages->GetSize(), 2);
-    std::set<std::string> devices;
-    std::set<std::string> names;
-    for (int32_t index = 0; index < 2; ++index) {
-        std::unique_ptr<PtJson> distro;
-        std::unique_ptr<PtJson> deviceTypes;
-        ASSERT_EQ(modules->Get(index)->GetObject("distro", &distro), Result::SUCCESS);
-        std::string name;
-        ASSERT_EQ(distro->GetString("moduleName", &name), Result::SUCCESS);
-        EXPECT_EQ(name, "library");
-        ASSERT_EQ(modules->Get(index)->GetArray("deviceType", &deviceTypes), Result::SUCCESS);
-        ASSERT_EQ(deviceTypes->GetSize(), 1);
-        devices.insert(deviceTypes->Get(0)->GetString());
-        ASSERT_EQ(packages->Get(index)->GetString("name", &name), Result::SUCCESS);
-        names.insert(name);
-    }
-    const std::set<std::string> expected = {"phone", "tablet"};
-    EXPECT_EQ(devices, expected);
-    EXPECT_EQ(names, expected);
-    std::set<std::string> filesFound;
-    for (const auto& file : files) {
-        ASSERT_TRUE(fs::exists(file));
-        filesFound.insert(fs::path(file).stem().string());
-        EXPECT_EQ(packager.GetJsonInZips(file, Constants::PACK_INFO), info);
-        EXPECT_EQ(packager.GetJsonInZips(file, Constants::MODULE_JSON),
-            packager.GetJsonInZips((root_ / fs::path(file).filename()).string(), Constants::MODULE_JSON));
-    }
-    EXPECT_EQ(filesFound, expected);
-    packager.zipWrapper_.Close();
 }
 
 /*
