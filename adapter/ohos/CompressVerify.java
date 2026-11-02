@@ -936,6 +936,10 @@ public class CompressVerify {
         compatibleProcess(utility, utility.getHapPath(), tmpHapPathList, HAP_SUFFIX);
         compatibleProcess(utility, utility.getHspPath(), tmpHspPathList, HSP_SUFFIX);
         try {
+            if ((!tmpHapPathList.isEmpty() && !Compressor.isModuleHap(tmpHapPathList.get(0)))
+                    || (!tmpHspPathList.isEmpty() && !Compressor.isModuleHap(tmpHspPathList.get(0)))) {
+                return true;
+            }
             if (!tmpHapPathList.isEmpty()) {
                 HapVerifyInfo hapVerifyInfo = Compressor.parseStageHapVerifyInfo(tmpHapPathList.get(0));
                 bundleType = hapVerifyInfo.getBundleType();
