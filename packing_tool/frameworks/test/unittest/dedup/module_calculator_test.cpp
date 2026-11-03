@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -30,7 +30,9 @@ std::shared_ptr<OHOS::AppPackingTool::ModuleJson> CreateMockModule(
     const std::vector<std::string>& deviceTypes,
     bool deliveryWithInstall = true,
     const std::string& distributionFilter = "",
-    const std::string& compileSdkType = "OpenHarmony")
+    const std::string& compileSdkType = "OpenHarmony",
+    const std::string& requiredDeviceFeatures = "",
+    const std::string& anyOfDeviceFeatures = "")
 {
     (void)distributionFilter;
     std::string jsonStr = R"({"app":{"bundleName":"com.example.app","bundleType":"app")";
@@ -48,7 +50,14 @@ std::shared_ptr<OHOS::AppPackingTool::ModuleJson> CreateMockModule(
         }
     }
 
-    jsonStr += R"(],"deliveryWithInstall":)";
+    jsonStr += R"(])";
+    if (!requiredDeviceFeatures.empty()) {
+        jsonStr += R"(,"requiredDeviceFeatures":)" + requiredDeviceFeatures;
+    }
+    if (!anyOfDeviceFeatures.empty()) {
+        jsonStr += R"(,"anyOfDeviceFeatures":)" + anyOfDeviceFeatures;
+    }
+    jsonStr += R"(,"deliveryWithInstall":)";
     jsonStr += (deliveryWithInstall ? "true" : "false");
     jsonStr += "}}";
 
@@ -241,9 +250,9 @@ HWTEST_F(ModuleCalculatorTest, IsValidForInterAppDedup_IgnoresBundleTypeAndDeliv
     ASSERT_NE(validModule, nullptr);
     auto config = OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(validModule);
     EXPECT_TRUE(OHOS::AppPackingTool::ModuleCalculator::IsValidForInterAppDedup(config));
-    // The declared device type names are kept for the module level device type gate
-    ASSERT_EQ(config.deviceTypeNames.size(), 1U);
-    EXPECT_EQ(config.deviceTypeNames[0], "phone");
+    // The declared device types are kept for the module level device type gate
+    ASSERT_EQ(config.deviceTypes.size(), 1U);
+    EXPECT_EQ(config.deviceTypes[0], OHOS::AppPackingTool::DeviceType::PHONE);
 
     // These two fields exclude the module from the intra-app validity but are not part of the
     // inter-app module validity
@@ -270,32 +279,25 @@ HWTEST_F(ModuleCalculatorTest, IsValidForInterAppDedup_IgnoresBundleTypeAndDeliv
 }
 
 /**
- * @tc.name: ExtractModuleConfig_DeviceTypeNamesDedup_0100
- * @tc.desc: deviceTypeNames 保留声明的设备类型原始名称，重复声明只记录一次，requiredDeviceFeatures
- *           引入的设备类型与已声明列表合并并同样去重。
+ * @tc.name: ExtractModuleConfig_DeviceTypeDedup_0100
+ * @tc.desc: requiredDeviceFeatures 引入的设备类型与已声明的 deviceTypes 合并，已声明的类型不重复添加。
  */
-HWTEST_F(ModuleCalculatorTest, ExtractModuleConfig_DeviceTypeNamesDedup_0100, TestSize.Level0)
+HWTEST_F(ModuleCalculatorTest, ExtractModuleConfig_DeviceTypeDedup_0100, TestSize.Level0)
 {
-    auto duplicatedModule = CreateMockModule("entry", "entry", {"phone", "phone"});
-    ASSERT_NE(duplicatedModule, nullptr);
-    auto duplicatedConfig =
-        OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(duplicatedModule);
-    // 同一种设备类型声明两次时只保留一条
-    ASSERT_EQ(duplicatedConfig.deviceTypeNames.size(), 1U);
-    EXPECT_EQ(duplicatedConfig.deviceTypeNames[0], "phone");
-    EXPECT_TRUE(duplicatedConfig.deviceTypesConfigured);
-
-    // requiredDeviceFeatures 中的 "phone" 已在 deviceTypes 中，只有 "wearable" 是新设备类型
+    // deviceTypes 中的 "phone" 与 requiredDeviceFeatures 中的 "phone" 重复，只有 "wearable" 是新增设备类型
     const std::string jsonStr = R"({"app":{"bundleType":"app"},)"
         R"("module":{"name":"entry","type":"entry","deviceTypes":["phone","tablet"],)"
         R"("requiredDeviceFeatures":{"phone":["featureA"],"wearable":["featureB"]}}})";
     auto moduleJson = std::make_shared<OHOS::AppPackingTool::ModuleJson>();
     ASSERT_TRUE(moduleJson->ParseFromString(jsonStr));
     auto config = OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(moduleJson);
-    EXPECT_EQ(config.deviceTypeNames.size(), 3U);
-    EXPECT_EQ(std::count(config.deviceTypeNames.begin(), config.deviceTypeNames.end(), "phone"), 1);
-    EXPECT_EQ(std::count(config.deviceTypeNames.begin(), config.deviceTypeNames.end(), "tablet"), 1);
-    EXPECT_EQ(std::count(config.deviceTypeNames.begin(), config.deviceTypeNames.end(), "wearable"), 1);
+    EXPECT_EQ(config.deviceTypes.size(), 3U);
+    EXPECT_EQ(std::count(config.deviceTypes.begin(), config.deviceTypes.end(),
+        OHOS::AppPackingTool::DeviceType::PHONE), 1);
+    EXPECT_EQ(std::count(config.deviceTypes.begin(), config.deviceTypes.end(),
+        OHOS::AppPackingTool::DeviceType::TABLET), 1);
+    EXPECT_EQ(std::count(config.deviceTypes.begin(), config.deviceTypes.end(),
+        OHOS::AppPackingTool::DeviceType::WEARABLE), 1);
     EXPECT_EQ(config.requireDeviceFeatures.size(), 2U);
     EXPECT_TRUE(config.deviceTypesConfigured);
 }
@@ -435,4 +437,102 @@ HWTEST_F(ModuleCalculatorTest, ExtractModuleConfig_UsesFirstDistributionFilterRe
     auto config = OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(module, true, resourceMap);
     EXPECT_EQ(config.distributionFilter,
         R"({"screenDensity":{"policy":"include","value":["xldpi","xxldpi"]}})");
+}
+
+/**
+ * @tc.name: ExtractModuleConfig_AnyOfDeviceFeaturesPromoted_0100
+ * @tc.desc: anyOfDeviceFeatures 中的设备类型与 requiredDeviceFeatures 同口径并入设备集合。
+ */
+HWTEST_F(ModuleCalculatorTest, ExtractModuleConfig_AnyOfDeviceFeaturesPromoted_0100, TestSize.Level0)
+{
+    auto module = CreateMockModule("entry", "entry", {"phone"}, true, "", "OpenHarmony", "",
+        R"({"tablet":["featureA"]})");
+    ASSERT_NE(module, nullptr);
+    auto config = OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(module);
+    ASSERT_EQ(config.anyOfDeviceFeatures.size(), 1U);
+    EXPECT_EQ(config.anyOfDeviceFeatures[0], "tablet");
+    ASSERT_EQ(config.deviceTypes.size(), 2U);
+    EXPECT_EQ(std::count(config.deviceTypes.begin(), config.deviceTypes.end(),
+        OHOS::AppPackingTool::DeviceType::TABLET), 1);
+    EXPECT_TRUE(config.deviceTypesConfigured);
+}
+
+/**
+ * @tc.name: ExtractModuleConfig_AnyOfDeviceFeaturesEmpty_0200
+ * @tc.desc: 空对象、空值数组等价于未配置，不提升设备类型且不改变设备集合。
+ */
+HWTEST_F(ModuleCalculatorTest, ExtractModuleConfig_AnyOfDeviceFeaturesEmpty_0200, TestSize.Level0)
+{
+    auto emptyObject = CreateMockModule("entry", "entry", {"phone"}, true, "", "OpenHarmony", "", "{}");
+    ASSERT_NE(emptyObject, nullptr);
+    auto emptyConfig = OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(emptyObject);
+    EXPECT_TRUE(emptyConfig.anyOfDeviceFeatures.empty());
+    ASSERT_EQ(emptyConfig.deviceTypes.size(), 1U);
+
+    auto emptyArray = CreateMockModule("entry", "entry", {"phone"}, true, "", "OpenHarmony", "",
+        R"({"tablet":[]})");
+    ASSERT_NE(emptyArray, nullptr);
+    auto arrayConfig = OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(emptyArray);
+    EXPECT_TRUE(arrayConfig.anyOfDeviceFeatures.empty());
+    ASSERT_EQ(arrayConfig.deviceTypes.size(), 1U);
+    EXPECT_TRUE(arrayConfig.deviceTypesConfigured);
+}
+
+/**
+ * @tc.name: ExtractModuleConfig_AnyOfDeviceFeaturesDeviceTypeDedup_0300
+ * @tc.desc: anyOf 设备类型与 deviceTypes 重复时只记录一次，新设备类型追加到设备类型集合。
+ */
+HWTEST_F(ModuleCalculatorTest, ExtractModuleConfig_AnyOfDeviceFeaturesDeviceTypeDedup_0300,
+    TestSize.Level0)
+{
+    auto module = CreateMockModule("entry", "entry", {"phone"}, true, "", "OpenHarmony", "",
+        R"({"phone":["featureA"],"wearable":["featureB"]})");
+    ASSERT_NE(module, nullptr);
+    auto config = OHOS::AppPackingTool::ModuleCalculator::ExtractModuleConfig(module);
+    ASSERT_EQ(config.anyOfDeviceFeatures.size(), 2U);
+    ASSERT_EQ(config.deviceTypes.size(), 2U);
+    EXPECT_EQ(std::count(config.deviceTypes.begin(), config.deviceTypes.end(),
+        OHOS::AppPackingTool::DeviceType::PHONE), 1);
+    EXPECT_EQ(std::count(config.deviceTypes.begin(), config.deviceTypes.end(),
+        OHOS::AppPackingTool::DeviceType::WEARABLE), 1);
+}
+
+/**
+ * @tc.name: IsMandatoryModule_NonEmptyAnyOfDeviceFeatures_0100
+ * @tc.desc: anyOfDeviceFeatures 非空时模块不判定为必定安装模块。
+ */
+HWTEST_F(ModuleCalculatorTest, IsMandatoryModule_NonEmptyAnyOfDeviceFeatures_0100, TestSize.Level0)
+{
+    OHOS::AppPackingTool::ModuleConfig config;
+    config.moduleName = "feature_module";
+    config.deviceTypes = {OHOS::AppPackingTool::DeviceType::PHONE,
+        OHOS::AppPackingTool::DeviceType::TABLET};
+    config.deliveryWithInstall = true;
+    config.distributionFilter = "";
+    config.anyOfDeviceFeatures = {"tablet"};
+
+    OHOS::AppPackingTool::DeviceInstance device;
+    device.type = OHOS::AppPackingTool::DeviceType::PHONE;
+    device.distributionFilter = "";
+
+    EXPECT_FALSE(OHOS::AppPackingTool::ModuleCalculator::IsMandatoryModule(config, device));
+}
+
+/**
+ * @tc.name: IsMandatoryModule_EmptyAnyOfDeviceFeatures_0200
+ * @tc.desc: anyOfDeviceFeatures 为空时保持既有必定安装判定。
+ */
+HWTEST_F(ModuleCalculatorTest, IsMandatoryModule_EmptyAnyOfDeviceFeatures_0200, TestSize.Level0)
+{
+    OHOS::AppPackingTool::ModuleConfig config;
+    config.moduleName = "feature_module";
+    config.deviceTypes = {OHOS::AppPackingTool::DeviceType::PHONE};
+    config.deliveryWithInstall = true;
+    config.distributionFilter = "";
+
+    OHOS::AppPackingTool::DeviceInstance device;
+    device.type = OHOS::AppPackingTool::DeviceType::PHONE;
+    device.distributionFilter = "";
+
+    EXPECT_TRUE(OHOS::AppPackingTool::ModuleCalculator::IsMandatoryModule(config, device));
 }

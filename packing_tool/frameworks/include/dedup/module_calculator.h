@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -33,13 +33,13 @@ struct ModuleConfig {
     std::string bundleType; // "app", "atomicService"
     bool stageModel;
     std::vector<DeviceType> deviceTypes;
-    std::vector<std::string> deviceTypeNames;
     bool deviceTypesConfigured;
     std::string distributionFilter;
     bool distributionFilterValid;
     bool deliveryWithInstall;
     bool deliveryWithInstallPresent;
     std::vector<std::string> requireDeviceFeatures;
+    std::vector<std::string> anyOfDeviceFeatures;
     bool compressNativeLibs;
     bool extractNativeLibs;
     bool libIsolation;
@@ -111,6 +111,13 @@ private:
      * @return 是否为空
      */
     static bool HasEmptyRequireDeviceFeatures(const ModuleConfig& moduleConfig);
+
+    /**
+     * @brief 检查anyOfDeviceFeatures是否为空
+     * @param moduleConfig 模块配置
+     * @return 是否为空
+     */
+    static bool HasEmptyAnyOfDeviceFeatures(const ModuleConfig& moduleConfig);
 };
 
 }  // namespace AppPackingTool

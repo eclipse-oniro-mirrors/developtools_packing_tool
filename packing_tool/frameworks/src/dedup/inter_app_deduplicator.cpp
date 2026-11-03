@@ -75,7 +75,7 @@ bool InterAppDeduplicator::BuildPackContext(const std::shared_ptr<ModuleJson>& m
 {
     context = InterAppPackContext();
     if (!moduleJson) {
-        LOG(WARNING) << "module.json model is null for inter-app dedup";
+        LOG(WARNING) << "module.json model is null for so deduplication for sdk";
         return false;
     }
     ModuleApiVersion moduleApiVersion;
@@ -184,7 +184,7 @@ InterAppDedupStageResult InterAppDeduplicator::ComputeRemovals(const DedupListSd
     result.resultJson = GenerateResultJson(plan);
     if (result.resultJson.empty()) {
         result.failed = true;
-        result.errorMessage = "failed to generate inter-app dedup result json";
+        result.errorMessage = "failed to generate so deduplication for sdk result json";
         LOG(ERROR) << FormatInterAppDedupError(result.errorMessage);
         return result;
     }

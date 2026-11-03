@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -70,6 +70,7 @@ const std::string COMPRESS_NATIVE_LIBS = "compressNativeLibs";
 const std::string EXTRACT_NATIVE_LIBS = "extractNativeLibs";
 const std::string LIB_ISOLATION = "libIsolation";
 const std::string REQUIRED_DEVICE_FEATURES = "requiredDeviceFeatures";
+const std::string ANY_OF_DEVICE_FEATURES = "anyOfDeviceFeatures";
 const std::string EXECUTABLE_BINARY_PATHS = "executableBinaryPaths";
 const std::string ASAN_ENABLED = "asanEnabled";
 const std::string TSAN_ENABLED = "tsanEnabled";
@@ -1205,6 +1206,47 @@ bool ModuleJson::GetStageRequiredDeviceFeatureTypes(std::list<std::string>& devi
     }
     std::unique_ptr<PtJson> featuresObj;
     if (moduleObj->GetAny(REQUIRED_DEVICE_FEATURES.c_str(), &featuresObj) != Result::SUCCESS || !featuresObj) {
+        return false;
+    }
+    for (int32_t index = 0; index < featuresObj->GetSize(); ++index) {
+        std::unique_ptr<PtJson> feature = featuresObj->Get(index);
+        if (feature && feature->IsArray() && feature->GetSize() > 0) {
+            deviceTypes.push_back(feature->GetKey());
+        }
+    }
+    return true;
+}
+
+bool ModuleJson::GetStageHasAnyOfDeviceFeatures(bool& hasAnyOfDeviceFeatures)
+{
+    std::unique_ptr<PtJson> moduleObj;
+    if (!GetModuleObject(moduleObj)) {
+        LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs("GetModuleObject failed!").c_str());
+        return false;
+    }
+    if (!moduleObj->Contains(ANY_OF_DEVICE_FEATURES.c_str())) {
+        hasAnyOfDeviceFeatures = false;
+        return true;
+    }
+    std::unique_ptr<PtJson> featuresObj;
+    if (moduleObj->GetAny(ANY_OF_DEVICE_FEATURES.c_str(), &featuresObj) != Result::SUCCESS || !featuresObj) {
+        LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs(
+            std::string("Module node get ") + ANY_OF_DEVICE_FEATURES + " failed!").c_str());
+        return false;
+    }
+    hasAnyOfDeviceFeatures = featuresObj->GetSize() > 0;
+    return true;
+}
+
+bool ModuleJson::GetStageAnyOfDeviceFeatureTypes(std::list<std::string>& deviceTypes)
+{
+    deviceTypes.clear();
+    std::unique_ptr<PtJson> moduleObj;
+    if (!GetModuleObject(moduleObj) || !moduleObj->Contains(ANY_OF_DEVICE_FEATURES.c_str())) {
+        return true;
+    }
+    std::unique_ptr<PtJson> featuresObj;
+    if (moduleObj->GetAny(ANY_OF_DEVICE_FEATURES.c_str(), &featuresObj) != Result::SUCCESS || !featuresObj) {
         return false;
     }
     for (int32_t index = 0; index < featuresObj->GetSize(); ++index) {

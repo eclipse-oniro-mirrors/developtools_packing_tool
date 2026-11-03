@@ -100,7 +100,7 @@ public:
     static void MergeGateContext(InterAppGateContext& appGate, const InterAppGateContext& moduleGate);
 
     // Whether the declared module device types are a subset of the manifest device types
-    static bool IsDeviceTypeSubset(const std::vector<std::string>& deviceTypes,
+    static bool IsDeviceTypeSubset(const std::vector<DeviceType>& deviceTypes,
         const std::set<std::string>& supportedDeviceTypes);
 
 private:

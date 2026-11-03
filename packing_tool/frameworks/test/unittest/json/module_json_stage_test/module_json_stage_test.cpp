@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -2919,5 +2919,77 @@ HWTEST_F(ModuleJsonStageTest, SetBuildVersion_0300, Function | MediumTest | Leve
     EXPECT_TRUE(moduleJson.ParseFromString(MODULE_JSON_BUILDVERSION_TEST_STRING));
     std::string buildVersion = "1.0.0";
     EXPECT_TRUE(moduleJson.SetBuildVersion(buildVersion));
+}
+
+/*
+ * @tc.name: GetStageAnyOfDeviceFeatureTypes_0100
+ * @tc.desc: test get stage anyOfDeviceFeatures device types
+ * @tc.type: FUNC
+ */
+HWTEST_F(ModuleJsonStageTest, GetStageAnyOfDeviceFeatureTypes_0100, Function | MediumTest | Level1)
+{
+    const std::string jsonStr = R"({"app":{"bundleName":"com.example.app","bundleType":"app"},)"
+        R"("module":{"name":"entry","type":"entry","deviceTypes":["phone"],)"
+        R"("anyOfDeviceFeatures":{"tablet":["featureA"],"phone":["featureB"]}}})";
+    OHOS::AppPackingTool::ModuleJson moduleJson;
+    moduleJson.Release();
+    ASSERT_TRUE(moduleJson.ParseFromString(jsonStr));
+
+    bool hasAnyOfDeviceFeatures = false;
+    EXPECT_TRUE(moduleJson.GetStageHasAnyOfDeviceFeatures(hasAnyOfDeviceFeatures));
+    EXPECT_TRUE(hasAnyOfDeviceFeatures);
+
+    std::list<std::string> deviceTypes;
+    EXPECT_TRUE(moduleJson.GetStageAnyOfDeviceFeatureTypes(deviceTypes));
+    ASSERT_EQ(deviceTypes.size(), 2U);
+    bool hasTablet = false;
+    bool hasPhone = false;
+    for (const auto& deviceType : deviceTypes) {
+        hasTablet = hasTablet || deviceType == "tablet";
+        hasPhone = hasPhone || deviceType == "phone";
+    }
+    EXPECT_TRUE(hasTablet);
+    EXPECT_TRUE(hasPhone);
+}
+
+/*
+ * @tc.name: GetStageAnyOfDeviceFeatureTypes_Missing_0200
+ * @tc.desc: test missing anyOfDeviceFeatures is treated as not configured
+ * @tc.type: FUNC
+ */
+HWTEST_F(ModuleJsonStageTest, GetStageAnyOfDeviceFeatureTypes_Missing_0200, Function | MediumTest | Level1)
+{
+    const std::string jsonStr = R"({"app":{"bundleName":"com.example.app","bundleType":"app"},)"
+        R"("module":{"name":"entry","type":"entry","deviceTypes":["phone"]}})";
+    OHOS::AppPackingTool::ModuleJson moduleJson;
+    moduleJson.Release();
+    ASSERT_TRUE(moduleJson.ParseFromString(jsonStr));
+
+    bool hasAnyOfDeviceFeatures = true;
+    EXPECT_TRUE(moduleJson.GetStageHasAnyOfDeviceFeatures(hasAnyOfDeviceFeatures));
+    EXPECT_FALSE(hasAnyOfDeviceFeatures);
+
+    std::list<std::string> deviceTypes;
+    EXPECT_TRUE(moduleJson.GetStageAnyOfDeviceFeatureTypes(deviceTypes));
+    EXPECT_TRUE(deviceTypes.empty());
+}
+
+/*
+ * @tc.name: GetStageAnyOfDeviceFeatureTypes_EmptyValues_0300
+ * @tc.desc: test empty feature arrays do not promote device types
+ * @tc.type: FUNC
+ */
+HWTEST_F(ModuleJsonStageTest, GetStageAnyOfDeviceFeatureTypes_EmptyValues_0300, Function | MediumTest | Level1)
+{
+    const std::string jsonStr = R"({"app":{"bundleName":"com.example.app","bundleType":"app"},)"
+        R"("module":{"name":"entry","type":"entry","deviceTypes":["phone"],)"
+        R"("anyOfDeviceFeatures":{"tablet":[]}}})";
+    OHOS::AppPackingTool::ModuleJson moduleJson;
+    moduleJson.Release();
+    ASSERT_TRUE(moduleJson.ParseFromString(jsonStr));
+
+    std::list<std::string> deviceTypes;
+    EXPECT_TRUE(moduleJson.GetStageAnyOfDeviceFeatureTypes(deviceTypes));
+    EXPECT_TRUE(deviceTypes.empty());
 }
 }

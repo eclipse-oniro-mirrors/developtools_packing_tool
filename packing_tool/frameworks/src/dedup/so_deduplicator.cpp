@@ -528,7 +528,7 @@ bool SODeduplicator::BuildInterAppPackContexts(const std::vector<ModuleDedupCont
         // Reuse the Stage module.json already parsed once during module extraction
         InterAppPackContext packContext;
         if (!InterAppDeduplicator::BuildPackContext(module.module, packContext)) {
-            SetInterAppError("Failed to build inter-app dedup context for module: " + module.reportPath);
+            SetInterAppError("Failed to build so deduplication for sdk context for module: " + module.reportPath);
             return false;
         }
         if (!packContext.applicable) {
@@ -566,7 +566,7 @@ bool SODeduplicator::SolveInterAppModule(const ModuleDedupContext& module,
     InterAppDedupStageResult removal = deduplicator.ComputeRemovals(dedupList,
         (module.extractedPath / "libs").string(), packContext, moduleCache, removedByIntraApp);
     if (removal.failed) {
-        SetInterAppError("Inter-app deduplication failed for module: " + module.reportPath + ", " +
+        SetInterAppError("So deduplication for sdk failed for module: " + module.reportPath + ", " +
             removal.errorMessage);
         return false;
     }
@@ -617,7 +617,7 @@ bool SODeduplicator::MergeInterAppDedup(const std::vector<ModuleDedupContext>& m
             return false;
         }
     }
-    LOG(INFO) << "Inter-app deduplication merged for " << matchedModules << " module(s).";
+    LOG(INFO) << "So deduplication for sdk merged for " << matchedModules << " module(s).";
     return true;
 }
 

@@ -29,6 +29,7 @@
 using testing::ext::TestSize;
 using OHOS::AppPackingTool::DedupApiVersion;
 using OHOS::AppPackingTool::DedupListSdkParser;
+using OHOS::AppPackingTool::DeviceType;
 using OHOS::AppPackingTool::InterAppDedupPlan;
 using OHOS::AppPackingTool::InterAppDedupStageResult;
 using OHOS::AppPackingTool::InterAppDeduplicator;
@@ -72,7 +73,7 @@ ModuleConfig BuildEligibleConfig()
     config.moduleName = "entry";
     config.moduleType = "entry";
     config.bundleType = "app";
-    config.deviceTypeNames = {"phone"};
+    config.deviceTypes = {DeviceType::PHONE};
     config.deviceTypesConfigured = true;
     config.deliveryWithInstallPresent = true;
     config.deliveryWithInstall = true;
@@ -278,8 +279,8 @@ HWTEST_F(InterAppDeduplicatorTest, BuildPackContext_ModuleJsonBranches_0500, Tes
     EXPECT_EQ(context.gateContext.minApiVersion, 260000026);
     EXPECT_TRUE(context.gateContext.GetApiVersion() == DedupApiVersion::FromApiVersion(26));
     EXPECT_EQ(context.moduleConfig.moduleName, "entry");
-    ASSERT_EQ(context.moduleConfig.deviceTypeNames.size(), 1U);
-    EXPECT_EQ(context.moduleConfig.deviceTypeNames[0], "phone");
+    ASSERT_EQ(context.moduleConfig.deviceTypes.size(), 1U);
+    EXPECT_EQ(context.moduleConfig.deviceTypes[0], DeviceType::PHONE);
 
     // Without minAPIVersion the version gate stays unevaluable but the context is still applicable
     auto noVersionModule = std::make_shared<ModuleJson>();
