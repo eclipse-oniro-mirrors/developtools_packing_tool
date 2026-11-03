@@ -196,6 +196,8 @@ public class JsonUtil {
     private static final String SCHEDULE_UPDATE_TIME = "scheduledUpdateTime";
     private static final String UPDATE_DURATION = "updateDuration";
     private static final String FROM_CONFIG_ABILITY = "formConfigAbility";
+    private static final String FORM_MANAGER_ANIMATED_IMAGES = "formManagerAnimatedImages";
+    private static final String MEDIA_RESOURCE = "$media:";
     private static final String FORM_VISIBLE_NOTIFY = "formVisibleNotify";
     private static final String AUTO = "auto";
     private static final String DOT = ".";
@@ -1926,6 +1928,24 @@ public class JsonUtil {
         moduleFormInfo.description = parseFormDescription(formObj, data);
         moduleFormInfo.setDescriptions(parseFormDescriptions(formObj, data));
         moduleFormInfo.src = getJsonString(formObj, SRC);
+        int imageIndex = -1;
+        try {
+            JSONArray animatedImages = formObj.getJSONArray(FORM_MANAGER_ANIMATED_IMAGES);
+            for (int i = 0; animatedImages != null && i < animatedImages.size(); i++) {
+                imageIndex = i;
+                String reference = animatedImages.getString(i);
+                if (reference == null || !reference.startsWith(MEDIA_RESOURCE)) {
+                    throw new NumberFormatException("Invalid media resource reference: " + reference);
+                }
+                int resourceId = Integer.parseInt(reference.substring(MEDIA_RESOURCE.length()));
+                moduleFormInfo.formManagerAnimatedImages.add(parseResourcePathById(resourceId, reference, data));
+            }
+        } catch (JSONException | NumberFormatException exception) {
+            String field = FORM_MANAGER_ANIMATED_IMAGES + (imageIndex < 0 ? "" : "[" + imageIndex + "]");
+            throw new BundleException("Invalid " + field + " in form '" + moduleFormInfo.name
+                    + "': expected " + (imageIndex < 0 ? "an array" : "a $media:<decimal resource ID> string"),
+                    exception);
+        }
 
         if (formObj.containsKey(WINDOW)) {
             AbilityFormInfo.ModuleWindowInfo windowInfo =
@@ -2209,27 +2229,25 @@ public class JsonUtil {
      * @throws BundleException Throws this exception when parse failed.
      */
     static String parseIconById(JSONObject jsonObject, byte[] data) throws BundleException {
-        String iconPath = "";
         if (jsonObject.containsKey("iconId")) {
             int resId = jsonObject.getIntValue("iconId");
-            ResourcesParser resourcesParser = ResourcesParserFactory.createParser(data);
-            iconPath = resourcesParser.getFinalBaseResourceById(resId, data);
-            if (iconPath.isEmpty()) {
-                iconPath = resourcesParser.getFinalResourceById(resId, data);
-            }
-            if (iconPath.contains("resources")) {
-                iconPath = iconPath.substring(iconPath.lastIndexOf("resources"));
-            } else {
-                LOG.warning("JsonUtil::parseIconById not found: " + resId);
-            }
+            return parseResourcePathById(resId, getJsonString(jsonObject, "icon"), data);
         }
-        if (!iconPath.isEmpty()) {
-            return iconPath;
-        } else if (jsonObject.containsKey("icon")) {
-            return getJsonString(jsonObject, "icon");
+        return getJsonString(jsonObject, "icon");
+    }
+
+    private static String parseResourcePathById(int resId, String original, byte[] data) throws BundleException {
+        ResourcesParser resourcesParser = ResourcesParserFactory.createParser(data);
+        String path = resourcesParser.getFinalBaseResourceById(resId, data);
+        if (path.isEmpty()) {
+            path = resourcesParser.getFinalResourceById(resId, data);
+        }
+        if (path.contains("resources")) {
+            path = path.substring(path.lastIndexOf("resources"));
         } else {
-            return "";
+            LOG.warning("JsonUtil::parseIconById not found: " + resId);
         }
+        return path.isEmpty() ? original : path;
     }
 
     /**

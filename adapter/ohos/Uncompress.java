@@ -257,6 +257,9 @@ public class Uncompress {
                     continue;
                 }
                 UncompressResult hapInfo = uncompressHapByStream("", stream, hapName);
+                if (!hapInfo.getResult()) {
+                    return hapInfo;
+                }
                 if (hapInfo.getProfileInfos() != null && hapInfo.getProfileInfos().size() > 0) {
                     hapInfo.getProfileInfos().get(0).hapInfo.originalSize = entry.getSize();
                     hapInfo.getProfileInfos().get(0).hapInfo.compressedSize = entry.getCompressedSize();
@@ -296,6 +299,9 @@ public class Uncompress {
                 if (entry.getName().toLowerCase(Locale.ENGLISH).endsWith(HAP_SUFFIX)
                         || entry.getName().toLowerCase(Locale.ENGLISH).endsWith(HSP_SUFFIX)) {
                     UncompressResult hapInfo = uncompressHapByStream("", stream, entry.getName());
+                    if (!hapInfo.getResult()) {
+                        return hapInfo;
+                    }
                     if (hapInfo.getProfileInfos() != null && hapInfo.getProfileInfos().size() > 0) {
                         hapInfo.getProfileInfos().get(0).hapInfo.originalSize = entry.getSize();
                         hapInfo.getProfileInfos().get(0).hapInfo.compressedSize = entry.getCompressedSize();
@@ -396,6 +402,9 @@ public class Uncompress {
                 if (entry.getName().toLowerCase(Locale.ENGLISH).endsWith(HAP_SUFFIX)
                         || entry.getName().toLowerCase(Locale.ENGLISH).endsWith(HSP_SUFFIX)) {
                     UncompressResult hapResult = uncompressHapByStream("", zipInputStream, entry.getName());
+                    if (!hapResult.getResult()) {
+                        return hapResult;
+                    }
                     if (hapResult.getProfileInfos() != null && hapResult.getProfileInfos().size() > 0) {
                         hapResult.getProfileInfos().get(0).hapInfo.originalSize = entry.getSize();
                         hapResult.getProfileInfos().get(0).hapInfo.compressedSize = entry.getCompressedSize();
@@ -943,7 +952,7 @@ public class Uncompress {
             }
         } catch (BundleException exception) {
             LOG.error("Uncompress::uncompressByInput io exception: " + exception.getMessage());
-            throw new BundleException("Uncompress by input failed");
+            throw new BundleException("Uncompress by input failed: " + exception.getMessage(), exception);
         }
         return result;
     }
@@ -1438,10 +1447,10 @@ public class Uncompress {
             moduleResult = uncompressModule(deviceType, srcPath, fileName);
             ModuleAdaption moduleAdaption = new ModuleAdaption();
             uncomperssResult = moduleAdaption.convertToUncompressResult(moduleResult);
-        } catch (BundleException ignored) {
-            LOG.error("Uncompress::uncompressHap Bundle exception");
+        } catch (BundleException exception) {
+            LOG.error("Uncompress::uncompressHap Bundle exception: " + exception.getMessage());
             uncomperssResult.setResult(false);
-            uncomperssResult.setMessage("uncompressHap Bundle exception");
+            uncomperssResult.setMessage("uncompressHap Bundle exception: " + exception.getMessage());
         }
         return uncomperssResult;
     }
@@ -1485,10 +1494,10 @@ public class Uncompress {
             moduleResult = uncompressModuleByInput(deviceType, input, MODULE_JSON, hapName);
             ModuleAdaption moduleAdaption = new ModuleAdaption();
             uncompressResult = moduleAdaption.convertToUncompressResult(moduleResult);
-        } catch (BundleException ignored) {
-            LOG.error("Uncompress::uncompressHapByInput Bundle exception");
+        } catch (BundleException exception) {
+            LOG.error("Uncompress::uncompressHapByInput Bundle exception: " + exception.getMessage());
             uncompressResult.setResult(false);
-            uncompressResult.setMessage("uncompressHapByInput Bundle exception");
+            uncompressResult.setMessage("uncompressHapByInput Bundle exception: " + exception.getMessage());
         }
         return uncompressResult;
     }
