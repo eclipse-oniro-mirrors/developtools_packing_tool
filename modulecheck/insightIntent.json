@@ -208,7 +208,7 @@
             }
           },
           "exported": {
-            "description": "Indicates whether the insightIntent can be discovered and invoked by third-party agents.",
+            "description": "Specifies whether the insightIntent can be called by third-party applications.",
             "type": "boolean"
           }
         }
