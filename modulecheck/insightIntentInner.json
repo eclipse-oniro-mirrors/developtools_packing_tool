@@ -37,7 +37,8 @@
             "inputParams",
             "outputParams",
             "entities",
-            "permissions"
+            "permissions",
+            "exported"
           ]
         },
         "required": [
@@ -206,6 +207,14 @@
               "type": "string",
               "maxLength": 255
             }
+          },
+          "exported": {
+            "description": "Indicates whether the insightIntent can be discovered and invoked by third-party agents.",
+            "type": "string",
+            "enum": [
+              "systemOnly",
+              "thirdParty"
+            ]
           }
         }
       }
