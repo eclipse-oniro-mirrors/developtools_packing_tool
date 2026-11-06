@@ -1408,27 +1408,90 @@ HWTEST_F(MultiAppPackagerTest, LargePackage_App_Input_Exceeds_0100, Function | M
 {
     const int64_t testLimit = 8 * 1024; // 8KB threshold
 
+    const fs::path testDir = fs::path("/data/test") / ("multiapp-large-" + AppPackingTool::Utils::GenerateUUID());
+    std::error_code ec;
+    ASSERT_TRUE(fs::create_directory(testDir, ec)) << ec.message();
+    struct TestState final {
+        fs::path root;
+        ~TestState()
+        {
+            AppPackingTool::Packager::setMaxAppInputSize(AppPackingTool::Constants::MAX_APP_INPUT_SIZE);
+            MockMultiAppModuleJsonUtils::Reset();
+            std::error_code error;
+            fs::remove_all(root, error);
+            EXPECT_FALSE(error) << error.message();
+        }
+    } state {testDir};
+    MockMultiAppModuleJsonUtils::Reset();
+    const std::string hapPath = (testDir / "test.hap").string();
+    const std::string hspPath = (testDir / "test.hsp").string();
+    ASSERT_TRUE(fs::create_directory(testDir / "work", ec)) << ec.message();
+    const std::string outPath = (testDir / "work" / "out.app").string();
+
+    const std::string moduleJson = "{\"app\":{\"bundleName\":\"com.example.large\""
+        ",\"versionCode\":1,\"versionName\":\"1.0\"},"
+        "\"module\":{\"name\":\"entry\",\"type\":\"entry\",\"deviceTypes\":[\"default\"]}}";
+    const std::string packInfoJson = "{\"summary\":{\"app\":{\"bundleName\":\"com.example.large\""
+        ",\"version\":{\"code\":1,\"name\":\"1.0\"}},\"modules\":[{\"distro\":"
+        "{\"moduleName\":\"entry\"},\"deviceType\":[\"default\"]}]},"
+        "\"packages\":[{\"name\":\"entry-default\"}]}";
+    const std::string padding(12 * 1024, 'x');
+    const fs::path baseDir = testDir / "src";
+    ASSERT_TRUE(fs::create_directory(baseDir, ec)) << ec.message();
+
+    auto createZip = [baseDir](const std::string& zipPath, const std::string& moduleJson,
+                        const std::string& packInfoJson, const std::string& padding) {
+        std::ofstream mj(baseDir / "module.json", std::ios::binary);
+        mj << moduleJson;
+        mj.close();
+        ASSERT_FALSE(mj.fail());
+        std::ofstream pi(baseDir / "pack.info", std::ios::binary);
+        pi << packInfoJson;
+        pi.close();
+        ASSERT_FALSE(pi.fail());
+        std::ofstream pad(baseDir / "padding.bin", std::ios::binary);
+        pad << padding;
+        pad.close();
+        ASSERT_FALSE(pad.fail());
+        AppPackingTool::ZipWrapper archive(zipPath);
+        ASSERT_EQ(archive.Open(), AppPackingTool::ZipErrCode::ZIP_ERR_SUCCESS);
+        ASSERT_EQ(archive.AddFileOrDirectoryToZip((baseDir / "module.json").string(), "module.json"),
+            AppPackingTool::ZipErrCode::ZIP_ERR_SUCCESS);
+        ASSERT_EQ(archive.AddFileOrDirectoryToZip((baseDir / "pack.info").string(), "pack.info"),
+            AppPackingTool::ZipErrCode::ZIP_ERR_SUCCESS);
+        // Store padding without compression so each input archive exceeds the threshold.
+        ASSERT_EQ(archive.AddFileOrDirectoryToZip((baseDir / "padding.bin").string(), "padding.bin", false),
+            AppPackingTool::ZipErrCode::ZIP_ERR_SUCCESS);
+        archive.Close();
+    };
+
+    ASSERT_NO_FATAL_FAILURE(createZip(hapPath, moduleJson, packInfoJson, padding));
+    ASSERT_NO_FATAL_FAILURE(createZip(hspPath, moduleJson, packInfoJson, padding));
+    ASSERT_GT(fs::file_size(hapPath, ec), static_cast<uintmax_t>(testLimit));
+    ASSERT_FALSE(ec) << ec.message();
+    ASSERT_GT(fs::file_size(hspPath, ec), static_cast<uintmax_t>(testLimit));
+    ASSERT_FALSE(ec) << ec.message();
+
     OHOS::AppPackingTool::Packager::setMaxAppInputSize(testLimit);
 
     std::string resultReceiver;
     std::map<std::string, std::string> parameterMap = {
         {Constants::PARAM_MODE, "multiApp"},
-        {Constants::PARAM_OUT_PATH, "/data/test/multiapp_large_out.app"},
+        {Constants::PARAM_OUT_PATH, outPath},
         {Constants::PARAM_FORCE, "true"},
-        {Constants::PARAM_HAP_LIST, "/data/test/resource/packingtool/test_file/hap/appPackagerHapTest.hap"},
-        {Constants::PARAM_HSP_LIST, "/data/test/resource/packingtool/test_file/hsp/appPackagerHspTest.hsp"},
-        {Constants::PARAM_PACK_INFO_PATH, "/data/test/resource/packingtool/test_file/pack.info"},
+        {Constants::PARAM_HAP_LIST, hapPath},
+        {Constants::PARAM_HSP_LIST, hspPath},
     };
 
+    MockMultiAppModuleJsonUtils::MockCheckHapsIsValid(true);
+    MockMultiAppModuleJsonUtils::MockGetHapVerifyInfosMapfromFileList(true);
+    MockMultiAppModuleJsonUtils::MockCheckAppAtomicServiceCompressedSizeValid(true);
     MultiAppPackager multiAppPackager(parameterMap, resultReceiver);
     int32_t result = multiAppPackager.MakePackage();
 
     EXPECT_NE(result, 0);
-    EXPECT_TRUE(resultReceiver.find("exceeds") != std::string::npos);
-
-    OHOS::AppPackingTool::Packager::setMaxAppInputSize(
-        OHOS::AppPackingTool::Constants::MAX_APP_INPUT_SIZE);
-    std::error_code rmEc;
-    std::filesystem::remove("/data/test/multiapp_large_out.app", rmEc);
+    EXPECT_TRUE(resultReceiver.find("APP uncompressed size") != std::string::npos) << resultReceiver;
+    EXPECT_TRUE(resultReceiver.find("exceeds") != std::string::npos) << resultReceiver;
+    EXPECT_FALSE(fs::exists(outPath));
 }
 } // namespace OHOS
