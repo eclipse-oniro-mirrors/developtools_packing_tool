@@ -411,6 +411,7 @@ class HapVerify {
         verifyCollection.setModuleName(baseInfo.getModuleName());
         verifyCollection.setModuleType(baseInfo.getModuleType());
         verifyCollection.setMultiAppMode(baseInfo.getMultiAppMode());
+        verifyCollection.setAllowAutoControlIntent(baseInfo.isAllowAutoControlIntent());
         return verifyCollection;
     }
 
@@ -570,6 +571,13 @@ class HapVerify {
             if (!verifyCollection.getMultiAppMode().equals(hapVerifyInfo.getMultiAppMode())) {
                 String errMsg = "The multiAppMode parameter values are different.";
                 String solution = "Check if the multiAppMode is the same in different modules.";
+                LOG.error(PackingToolErrMsg.APP_FIELDS_DIFFERENT_ERROR.toString(errMsg, solution));
+                return false;
+            }
+            if (verifyCollection.isAllowAutoControlIntent() != hapVerifyInfo.isAllowAutoControlIntent()) {
+                String errMsg = "The allowAutoControlIntent parameter values are different.";
+                String solution = "Set the same allowAutoControlIntent value in all HAPs. "
+                    + "Omitted values default to false.";
                 LOG.error(PackingToolErrMsg.APP_FIELDS_DIFFERENT_ERROR.toString(errMsg, solution));
                 return false;
             }

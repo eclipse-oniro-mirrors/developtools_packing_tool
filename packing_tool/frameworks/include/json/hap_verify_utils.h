@@ -52,6 +52,7 @@ struct VerifyCollection {
     std::string moduleName = "";
     std::string moduleType = "";
     MultiAppMode multiAppMode;
+    bool allowAutoControlIntent = false;
 };
 
 enum PolicyValueType {

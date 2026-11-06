@@ -101,6 +101,8 @@ public:
     void SetContinueTypeMap(const std::map<std::string, std::list<std::string>>& continueTypeMap);
     const MultiAppMode& GetMultiAppMode() const;
     void SetMultiAppMode(const MultiAppMode& multiAppMode);
+    bool IsAllowAutoControlIntent() const;
+    void SetAllowAutoControlIntent(bool allowAutoControlIntent);
     const std::string& GetFileType() const;
     void SetFileType(const std::string& fileType);
     const std::list<std::string>& GetAssetAccessGroups() const;
@@ -146,6 +148,7 @@ private:
     std::list<std::string> assetAccessGroups_;
     std::map<std::string, std::list<std::string>> continueTypeMap_;
     MultiAppMode multiAppMode_;
+    bool allowAutoControlIntent_ = false;
     std::string fileType_ = "";
 };
 }  // namespace AppPackingTool

@@ -161,6 +161,8 @@ class HapVerifyInfo {
 
     private MultiAppMode multiAppMode = new MultiAppMode();
 
+    private boolean allowAutoControlIntent = false;
+
     private String fileType = "";
 
     /**
@@ -599,6 +601,14 @@ class HapVerifyInfo {
 
     public void setMultiAppMode(MultiAppMode multiAppMode) {
         this.multiAppMode = multiAppMode;
+    }
+
+    public boolean isAllowAutoControlIntent() {
+        return allowAutoControlIntent;
+    }
+
+    public void setAllowAutoControlIntent(boolean allowAutoControlIntent) {
+        this.allowAutoControlIntent = allowAutoControlIntent;
     }
 
     public String getFileType() {

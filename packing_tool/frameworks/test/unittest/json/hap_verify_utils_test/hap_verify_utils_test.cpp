@@ -1601,5 +1601,59 @@ HWTEST_F(HapVerifyUtilsTest, IsStageModule_0100, Function | MediumTest | Level1)
     auto ret = info.IsStageModule();
     EXPECT_TRUE(ret);
 }
+
+/*
+ * @tc.name: CheckAppFieldsAutoControlIntent_0100
+ * @tc.desc: HAPs must have the same effective allowAutoControlIntent value in either input order.
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(HapVerifyUtilsTest, CheckAppFieldsAutoControlIntent_0100, Function | MediumTest | Level1)
+{
+    AppPackingTool::HapVerifyInfo entry;
+    entry.SetBundleName("com.example.app");
+    entry.SetModuleName("entry");
+    entry.SetModuleType("entry");
+    entry.SetFileType(".hap");
+    auto feature = entry;
+    feature.SetModuleName("feature");
+    feature.SetModuleType("feature");
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::CheckAppFieldsIsSame({entry, feature}));
+
+    entry.SetAllowAutoControlIntent(true);
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::CheckAppFieldsIsSame({entry, feature}));
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::CheckAppFieldsIsSame({feature, entry}));
+    feature.SetAllowAutoControlIntent(true);
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::CheckAppFieldsIsSame({entry, feature}));
+    entry.SetAllowAutoControlIntent(false);
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::CheckAppFieldsIsSame({entry, feature}));
+    feature.SetAllowAutoControlIntent(false);
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::CheckAppFieldsIsSame({entry, feature}));
+}
+
+/*
+ * @tc.name: CheckAppFieldsAutoControlIntent_0200
+ * @tc.desc: Feature-only HAPs are compared; a shared module does not supply the comparison value.
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(HapVerifyUtilsTest, CheckAppFieldsAutoControlIntent_0200, Function | MediumTest | Level1)
+{
+    AppPackingTool::HapVerifyInfo feature;
+    feature.SetBundleName("com.example.app");
+    feature.SetModuleName("feature");
+    feature.SetModuleType("feature");
+    feature.SetFileType(".hap");
+    auto shared = feature;
+    shared.SetModuleName("shared");
+    shared.SetModuleType("shared");
+    shared.SetFileType(".hsp");
+    feature.SetAllowAutoControlIntent(true);
+    auto secondFeature = feature;
+    secondFeature.SetModuleName("secondFeature");
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::CheckAppFieldsIsSame({shared, feature, secondFeature}));
+    secondFeature.SetAllowAutoControlIntent(false);
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::CheckAppFieldsIsSame({shared, feature, secondFeature}));
+}
 } // namespace OHOS
 

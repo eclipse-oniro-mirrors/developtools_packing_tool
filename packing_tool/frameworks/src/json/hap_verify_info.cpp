@@ -355,6 +355,16 @@ void HapVerifyInfo::SetMultiAppMode(const MultiAppMode& multiAppMode)
     multiAppMode_ = multiAppMode;
 }
 
+bool HapVerifyInfo::IsAllowAutoControlIntent() const
+{
+    return allowAutoControlIntent_;
+}
+
+void HapVerifyInfo::SetAllowAutoControlIntent(bool allowAutoControlIntent)
+{
+    allowAutoControlIntent_ = allowAutoControlIntent;
+}
+
 const std::list<std::string>& HapVerifyInfo::GetAssetAccessGroups() const
 {
     return assetAccessGroups_;

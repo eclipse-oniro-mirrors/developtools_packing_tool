@@ -119,6 +119,8 @@ class VerifyCollection {
 
     private MultiAppMode multiAppMode = new MultiAppMode();
 
+    private boolean allowAutoControlIntent = false;
+
     public String getMain() {
         return main;
     }
@@ -173,5 +175,23 @@ class VerifyCollection {
 
     public void setMultiAppMode(MultiAppMode multiAppMode) {
         this.multiAppMode = multiAppMode;
+    }
+
+    /**
+     * Returns the automation setting used for comparison.
+     *
+     * @return true if automation control is allowed
+     */
+    public boolean isAllowAutoControlIntent() {
+        return allowAutoControlIntent;
+    }
+
+    /**
+     * Sets the automation setting used for comparison.
+     *
+     * @param allowAutoControlIntent the setting parsed from the reference HAP
+     */
+    public void setAllowAutoControlIntent(boolean allowAutoControlIntent) {
+        this.allowAutoControlIntent = allowAutoControlIntent;
     }
 }
