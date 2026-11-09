@@ -92,6 +92,11 @@ public class AbilityFormInfo {
     public String src = "";
 
     /**
+     * Indicates the resolved media paths of form manager animated images.
+     */
+    public List<String> formManagerAnimatedImages = new ArrayList<String>();
+
+    /**
      * Indicates the window of ability form.
      */
     public ModuleWindowInfo windowInfo = new ModuleWindowInfo();

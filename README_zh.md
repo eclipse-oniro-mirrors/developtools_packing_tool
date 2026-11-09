@@ -780,6 +780,7 @@ java -jar app_unpacking_tool.jar --mode <option> --hsp-path <options> --out-path
 | formConfigAbility   | String                   | 标识卡片调整的Ability名称                                    | NA        |
 | formVisibleNotify   | String                   | 标识卡片是否被允许使用卡片可见性通知                         | NA        |
 | providerAbility     | String                   | 卡片的提供方所在的Ability或者extension名称，1.FA模型：如果卡片配置在service类型的ability中，providerAbility配置为mainAbility 2.FA模型：如果卡片配置在Page类型的Ability中，providerAbility配置为当前Ability 3.FA模型：如果没有配置mainAbility，providerAbility配置为当前hap包中的优先使用system.home，否则第一个page的Ability 4.stage模型中（follow上述规则），providerAbility配置为mainElement | NA |
+| formManagerAnimatedImages | List\<String> | Stage 卡片动态图片路径，按配置顺序返回并保留重复项 | 缺字段、null 或空数组时返回非 null 空列表 |
 | descriptions        | HashMap\<String, String> | 标识多语言下ability的描述                                     | NA     |
 
 
