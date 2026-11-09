@@ -53,7 +53,8 @@
             "supportDeviceTypes",
             "supportDevicePerformanceClasses",
             "standby",
-            "isColorModeRefreshEnabled"
+            "isColorModeRefreshEnabled",
+            "enableReminderAgentRefresh"
           ]
         },
         "required": [
@@ -467,6 +468,11 @@
           },
           "isColorModeRefreshEnabled": {
             "description": "This tag identifies whether the form enable refresh upon switching between light and dark modes.",
+            "type": "boolean",
+            "default": false
+          },
+          "enableReminderAgentRefresh": {
+            "description": "This tag identifies whether the form enable reminder agent refresh.",
             "type": "boolean",
             "default": false
           }
