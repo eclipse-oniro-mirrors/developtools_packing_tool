@@ -54,7 +54,8 @@
             "supportDevicePerformanceClasses",
             "standby",
             "isColorModeRefreshEnabled",
-            "enableReminderAgentRefresh"
+            "enableReminderAgentRefresh",
+            "enableTint"
           ]
         },
         "required": [
@@ -473,6 +474,11 @@
           },
           "enableReminderAgentRefresh": {
             "description": "This tag identifies whether the form enable reminder agent refresh.",
+            "type": "boolean",
+            "default": false
+          },
+          "enableTint": {
+            "description": "This tag identifies whether the form supports tinting.",
             "type": "boolean",
             "default": false
           }
