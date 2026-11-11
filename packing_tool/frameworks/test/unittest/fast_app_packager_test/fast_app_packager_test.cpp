@@ -26,6 +26,7 @@
 #include "scan_statdulpicate.h"
 #undef private
 #undef protected
+#include "utils.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -2040,30 +2041,68 @@ HWTEST_F(FastAppPackagerTest, LargePackage_App_Input_Exceeds_0100, Function | Me
 {
     const int64_t testLimit = 8 * 1024; // 8KB threshold
 
+    namespace fs = std::filesystem;
+    const fs::path testDir = fs::path("/data/test") /
+        ("fastapp-large-" + AppPackingTool::Utils::GenerateUUID());
+    std::error_code ec;
+    ASSERT_TRUE(fs::create_directory(testDir, ec)) << ec.message();
+    struct TestState final {
+        fs::path root;
+        ~TestState()
+        {
+            AppPackingTool::Packager::setMaxAppInputSize(AppPackingTool::Constants::MAX_APP_INPUT_SIZE);
+            MockFastAppModuleJsonUtils::Reset();
+            std::error_code error;
+            fs::remove_all(root, error);
+            EXPECT_FALSE(error) << error.message();
+        }
+    } state {testDir};
+    MockFastAppModuleJsonUtils::Reset();
+    const fs::path hapPath = testDir / "entry";
+    const fs::path hspPath = testDir / "test.hsp";
+    const fs::path packInfoPath = testDir / "pack.info";
+    const fs::path outPath = testDir / "out.app";
+    fs::copy(HAP_PATH, hapPath, fs::copy_options::recursive, ec);
+    ASSERT_FALSE(ec) << ec.message();
+    ASSERT_TRUE(fs::copy_file(HSP_PATH, hspPath, ec)) << ec.message();
+    {
+        const std::string packInfoContent = "{"
+        "\"summary\":{\"app\":{\"bundleName\":\"com.example.packingtooldemo\","
+        "\"version\":{\"code\":1000000,\"name\":\"1.0.0\"}},"
+        "\"modules\":[{\"distro\":{\"moduleName\":\"entry\"},\"deviceType\":[\"default\",\"tablet\"]}]},"
+        "\"packages\":[{\"name\":\"entry-default\"},{\"name\":\"test\"}]}";
+        std::ofstream stream(packInfoPath, std::ios::binary);
+        stream << packInfoContent;
+        stream.close();
+        ASSERT_FALSE(stream.fail());
+    }
+    ASSERT_TRUE(fs::copy_file(hapPath / "pack.json", hapPath / "pack.info",
+        fs::copy_options::overwrite_existing, ec)) << ec.message();
+    std::ofstream padding(hapPath / "padding.bin", std::ios::binary);
+    padding << std::string(12 * 1024, 'x');
+    padding.close();
+    ASSERT_FALSE(padding.fail());
+
     OHOS::AppPackingTool::Packager::setMaxAppInputSize(testLimit);
 
     std::string resultReceiver;
     std::map<std::string, std::string> parameterMap = {
         {OHOS::AppPackingTool::Constants::PARAM_MODE, OHOS::AppPackingTool::Constants::MODE_FAST_APP},
-        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, OUT_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_OUT_PATH, outPath.string()},
         {OHOS::AppPackingTool::Constants::PARAM_FORCE, "true"},
-        {OHOS::AppPackingTool::Constants::PARAM_HAP_PATH, HAP_PATH},
-        {OHOS::AppPackingTool::Constants::PARAM_HSP_PATH, HSP_PATH},
-        {OHOS::AppPackingTool::Constants::PARAM_PACK_INFO_PATH, PACK_INFO_PATH},
+        {OHOS::AppPackingTool::Constants::PARAM_HAP_PATH, hapPath.string()},
+        {OHOS::AppPackingTool::Constants::PARAM_HSP_PATH, hspPath.string()},
+        {OHOS::AppPackingTool::Constants::PARAM_PACK_INFO_PATH, packInfoPath.string()},
     };
 
-    WriteDeduplistSdkFile();
     MockFastAppModuleJsonUtils::MockCheckAppAtomicServiceCompressedSizeValid(true);
     MockFastAppModuleJsonUtils::MockGetHapVerifyInfosMapfromFileList(true);
     OHOS::AppPackingTool::FastAppPackager fastAppPackager(parameterMap, resultReceiver);
     int32_t result = fastAppPackager.MakePackage();
 
     EXPECT_NE(result, 0);
-    EXPECT_TRUE(resultReceiver.find("exceeds") != std::string::npos);
-
-    OHOS::AppPackingTool::Packager::setMaxAppInputSize(
-        OHOS::AppPackingTool::Constants::MAX_APP_INPUT_SIZE);
-    std::error_code rmEc;
-    std::filesystem::remove(OUT_PATH, rmEc);
+    EXPECT_TRUE(resultReceiver.find("APP uncompressed size") != std::string::npos) << resultReceiver;
+    EXPECT_TRUE(resultReceiver.find("exceeds") != std::string::npos) << resultReceiver;
+    EXPECT_FALSE(fs::exists(outPath));
 }
 } // namespace OHOS
