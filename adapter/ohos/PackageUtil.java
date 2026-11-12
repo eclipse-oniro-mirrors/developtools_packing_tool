@@ -495,7 +495,9 @@ public class PackageUtil {
                 }
                 InputStreamSupplier supplier = () -> {
                     try {
-                        return hspFile.getInputStream(zipEntry);
+                        synchronized (hspFile) {
+                            return hspFile.getInputStream(zipEntry);
+                        }
                     } catch (IOException e) {
                         LOG.error(PackingToolErrMsg.IO_EXCEPTION.toString("Repack hsp exist IOException: " +
                                 e.getMessage()));
