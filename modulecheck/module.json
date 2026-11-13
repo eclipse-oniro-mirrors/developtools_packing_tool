@@ -818,7 +818,8 @@
                 "shareFiles",
                 "skillProfiles",
                 "executableBinaryPaths",
-                "launchServices"
+                "launchServices",
+                "easyGo"
               ]
             },
             "required": [
@@ -2761,6 +2762,12 @@
         },
         "appStartup": {
           "description": "Startup framework configuration file. The value is startup framework configuration file path.",
+          "type": "string",
+          "pattern": "^[$]profile:[0-9a-zA-Z_.]+$",
+          "maxLength": 255
+        },
+        "easyGo": {
+          "description": "Point to the path of easyGo file which is to store compatibility mode configuration",
           "type": "string",
           "pattern": "^[$]profile:[0-9a-zA-Z_.]+$",
           "maxLength": 255
