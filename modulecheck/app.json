@@ -140,7 +140,8 @@
             "buildVersion",
             "profileable",
             "allowAutoControlIntent",
-            "allowListenBundleChangedEvent"
+            "allowListenBundleChangedEvent",
+            "keepDataOnUninstall"
           ]
         }
       },
@@ -666,6 +667,11 @@
             "maxLength": 128,
             "pattern": "^[0-9a-zA-Z]+$"
           }
+        },
+        "keepDataOnUninstall": {
+          "description": "Indicates whether to keep application data on uninstall.",
+          "type": "boolean",
+          "default": false
         }
       }
     }
