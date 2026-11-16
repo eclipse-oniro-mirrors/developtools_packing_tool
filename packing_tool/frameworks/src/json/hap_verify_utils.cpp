@@ -276,6 +276,7 @@ VerifyCollection HapVerifyUtils::GetVerifyCollection(const HapVerifyInfo& baseIn
     verifyCollection.moduleName = baseInfo.GetModuleName();
     verifyCollection.moduleType = baseInfo.GetModuleType();
     verifyCollection.multiAppMode = baseInfo.GetMultiAppMode();
+    verifyCollection.keepDataOnUninstall = baseInfo.IsKeepDataOnUninstall();
     verifyCollection.allowAutoControlIntent = baseInfo.IsAllowAutoControlIntent();
     return verifyCollection;
 }
@@ -449,6 +450,15 @@ bool HapVerifyUtils::AppFieldsIsSame(const VerifyCollection& verifyCollection, c
                 std::vector<std::string>{
                     "The multiAppMode parameter values are different.",
                     "Check if the multiAppMode is the same in different modules."
+                }).c_str());
+            return false;
+        }
+        if (verifyCollection.keepDataOnUninstall != hapVerifyInfo.IsKeepDataOnUninstall()) {
+            LOGE("%s", PackingToolErrMsg::APP_FIELDS_DIFFERENT_ERROR.toStringWithArgs(
+                std::vector<std::string>{
+                    "The keepDataOnUninstall fields of Hap[" + verifyCollection.moduleName +
+                        "] and Hap[" + hapVerifyInfo.GetModuleName() + "] are different.",
+                    "Ensure keepDataOnUninstall has the same value in each HAP (default: false)."
                 }).c_str());
             return false;
         }

@@ -1500,6 +1500,50 @@ void ModuleJsonStageTest::SetUp() {}
 void ModuleJsonStageTest::TearDown() {}
 
 /*
+ * @tc.name: KeepDataOnUninstall_DefaultAndBoolean
+ * @tc.desc: Parse boolean values through the full chain and reset reused output when the field is omitted.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ModuleJsonStageTest, KeepDataOnUninstall_DefaultAndBoolean, Function | MediumTest | Level1)
+{
+    ModuleJson moduleJson;
+    HapVerifyInfo info;
+    const std::string appFields = R"("bundleName":"com.example.app","versionCode":1,"versionName":"1.0",)"
+        R"("minAPIVersion":12,"targetAPIVersion":12,"apiReleaseType":"Release")";
+    for (const std::string field : {",\"keepDataOnUninstall\":true", ",\"keepDataOnUninstall\":false", ""}) {
+        SCOPED_TRACE(field);
+        moduleJson.Release();
+        EXPECT_TRUE(moduleJson.ParseFromString("{\"app\":{" + appFields + field + "},"
+            "\"module\":{\"name\":\"entry\",\"type\":\"entry\",\"deviceTypes\":[\"default\"],"
+            "\"deliveryWithInstall\":true,\"installationFree\":false}}"));
+        info.SetKeepDataOnUninstall(true);
+        EXPECT_TRUE(moduleJson.GetStageHapVerifyInfo(info));
+        EXPECT_EQ(info.IsKeepDataOnUninstall(), field == ",\"keepDataOnUninstall\":true");
+    }
+}
+
+/*
+ * @tc.name: KeepDataOnUninstall_InvalidType
+ * @tc.desc: Reject non-boolean values through the full parsing chain.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ModuleJsonStageTest, KeepDataOnUninstall_InvalidType, Function | MediumTest | Level1)
+{
+    ModuleJson moduleJson;
+    HapVerifyInfo info;
+    for (const std::string value : {"1", "0", "\"true\"", "null", "[]", "{}"}) {
+        SCOPED_TRACE(value);
+        moduleJson.Release();
+        EXPECT_TRUE(moduleJson.ParseFromString("{\"app\":{\"bundleName\":\"com.example.app\","
+            "\"versionCode\":1,\"versionName\":\"1.0\",\"minAPIVersion\":12,\"targetAPIVersion\":12,"
+            "\"apiReleaseType\":\"Release\",\"keepDataOnUninstall\":" + value + "},"
+            "\"module\":{\"name\":\"entry\",\"type\":\"entry\",\"deviceTypes\":[\"default\"],"
+            "\"deliveryWithInstall\":true,\"installationFree\":false}}"));
+        EXPECT_FALSE(moduleJson.GetStageHapVerifyInfo(info));
+    }
+}
+
+/*
  * @tc.name: SetStageVersionCode
  * @tc.desc: test set stage version code
  * @tc.type: FUNC

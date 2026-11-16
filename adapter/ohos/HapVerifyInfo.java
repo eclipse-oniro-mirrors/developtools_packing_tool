@@ -151,6 +151,8 @@ class HapVerifyInfo {
 
     private boolean debug = false;
 
+    private boolean keepDataOnUninstall = false;
+
     private String compileSdkVersion = "";
 
     private String compileSdkType = "";
@@ -547,6 +549,14 @@ class HapVerifyInfo {
 
     public int getSumSizeLimit() {
         return sumSizeLimit;
+    }
+
+    public boolean isKeepDataOnUninstall() {
+        return keepDataOnUninstall;
+    }
+
+    public void setKeepDataOnUninstall(boolean keepDataOnUninstall) {
+        this.keepDataOnUninstall = keepDataOnUninstall;
     }
 
     public boolean isDebug() {

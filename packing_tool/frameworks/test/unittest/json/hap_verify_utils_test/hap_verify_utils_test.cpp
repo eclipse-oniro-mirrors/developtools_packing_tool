@@ -50,6 +50,45 @@ void HapVerifyUtilsTest::SetUp() {}
 
 void HapVerifyUtilsTest::TearDown() {}
 
+/*
+ * @tc.name: KeepDataOnUninstall_Consistency
+ * @tc.desc: Compare all HAP values, including defaults, regardless of input order or entry presence.
+ * @tc.type: FUNC
+ */
+HWTEST_F(HapVerifyUtilsTest, KeepDataOnUninstall_Consistency, Function | MediumTest | Level1)
+{
+    using namespace AppPackingTool;
+    HapVerifyInfo first;
+    first.SetBundleName("com.example.keepdata");
+    first.SetModuleName("entry");
+    first.SetModuleType("entry");
+    first.SetFileType(".hap");
+    HapVerifyInfo second = first;
+    second.SetModuleName("feature");
+    second.SetModuleType("feature");
+    EXPECT_TRUE(HapVerifyUtils::CheckAppFieldsIsSame({first, second}));
+    second.SetKeepDataOnUninstall(false);
+    EXPECT_TRUE(HapVerifyUtils::CheckAppFieldsIsSame({first, second}));
+    second.SetKeepDataOnUninstall(true);
+    EXPECT_FALSE(HapVerifyUtils::CheckAppFieldsIsSame({first, second}));
+    EXPECT_FALSE(HapVerifyUtils::CheckAppFieldsIsSame({second, first}));
+    first.SetModuleType("feature");
+    EXPECT_FALSE(HapVerifyUtils::CheckAppFieldsIsSame({first, second}));
+    first.SetKeepDataOnUninstall(true);
+    EXPECT_TRUE(HapVerifyUtils::CheckAppFieldsIsSame({first, second}));
+    EXPECT_TRUE(HapVerifyUtils::CheckAppFieldsIsSame({first}));
+    HapVerifyInfo third = second;
+    third.SetModuleName("other");
+    third.SetKeepDataOnUninstall(false);
+    EXPECT_FALSE(HapVerifyUtils::CheckAppFieldsIsSame({first, second, third}));
+    third.SetFileType(".hsp");
+    third.SetModuleType("shared");
+    EXPECT_TRUE(HapVerifyUtils::CheckAppFieldsIsSame({first, second, third}));
+    EXPECT_TRUE(HapVerifyUtils::CheckAppFieldsIsSame({third, first, second}));
+    second.SetKeepDataOnUninstall(false);
+    EXPECT_FALSE(HapVerifyUtils::CheckAppFieldsIsSame({third, first, second}));
+}
+
 namespace {
     OHOS::AppPackingTool::HapVerifyInfo hapVerifyInfo1;
     OHOS::AppPackingTool::HapVerifyInfo hapVerifyInfo2;
