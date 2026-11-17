@@ -128,6 +128,7 @@
             "tsanEnabled",
             "ubsanEnabled",
             "appEnvironments",
+            "sharedUID",
             "maxChildProcess",
             "multiAppMode",
             "hwasanEnabled",
@@ -191,6 +192,7 @@
               "tsanEnabled",
               "ubsanEnabled",
               "appEnvironments",
+              "sharedUID",
               "maxChildProcess",
               "hwasanEnabled",
               "configuration",
@@ -267,6 +269,7 @@
                 "tsanEnabled",
                 "ubsanEnabled",
                 "appEnvironments",
+                "sharedUID",
                 "maxChildProcess",
                 "hwasanEnabled",
                 "configuration",
@@ -505,6 +508,11 @@
         },
         "ubsanEnabled": {
           "description": "Indicates whether to support ubsan.",
+          "type": "boolean",
+          "default": false
+        },
+        "sharedUID": {
+          "description": "Indicates whether the application is a productivity application with sharedUID enabled. The value is true or false. The default value is false.",
           "type": "boolean",
           "default": false
         },
