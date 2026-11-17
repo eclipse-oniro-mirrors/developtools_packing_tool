@@ -100,7 +100,8 @@
                   "formExtensionModule",
                   "skillProfiles",
                   "crossAppSharedConfig",
-                  "launchServices"
+                  "launchServices",
+                  "alternateModule"
                 ]
               },
               "required": [
@@ -140,7 +141,8 @@
                   "formExtensionModule",
                   "skillProfiles",
                   "crossAppSharedConfig",
-                  "launchServices"
+                  "launchServices",
+                  "alternateModule"
                 ]
               },
               "required": [
@@ -2630,6 +2632,11 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 100
+        },
+        "alternateModule": {
+          "description": "Indicates whether this module is an alternate module of a cross-app shared HSP. A value of true requires both app.bundleType and module.type to be shared. The default value is false.",
+          "type": "boolean",
+          "default": false
         },
         "generateBuildHash": {
           "description": "Indicates whether the hash value of hap or hsp is filed with in module.json.",
