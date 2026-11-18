@@ -142,7 +142,8 @@
             "profileable",
             "allowAutoControlIntent",
             "allowListenBundleChangedEvent",
-            "keepDataOnUninstall"
+            "keepDataOnUninstall",
+            "nativeChildProcessPreloadSoList"
           ]
         }
       },
@@ -680,6 +681,18 @@
           "description": "Indicates whether to keep application data on uninstall.",
           "type": "boolean",
           "default": false
+        },
+        "nativeChildProcessPreloadSoList": {
+          "description": "Indicates the native child process preload so list of the application.",
+          "type": "array",
+          "maxItems": 128,
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^(?!.*\\.\\./)[\\x21-\\x7E]*$"
+          }
         }
       }
     }
