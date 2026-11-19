@@ -102,6 +102,7 @@ class ModuleJsonUtil {
     private static final String TARGET_API_VERSION = "targetAPIVersion";
     private static final String API_RELEASE_TYPE = "apiReleaseType";
     private static final String DEBUG = "debug";
+    private static final String KEEP_DATA_ON_UNINSTALL = "keepDataOnUninstall";
     private static final String ALLOW_AUTO_CONTROL_INTENT = "allowAutoControlIntent";
     private static final String COMPATIBLE = "compatible";
     private static final String RELEASE_TYPE = "releaseType";
@@ -1049,6 +1050,7 @@ class ModuleJsonUtil {
         hapVerifyInfo.setProxyDataUris(parseProxyDataUri(hapVerifyInfo.getProfileStr()));
         hapVerifyInfo.setContinueTypeMap(parseAbilityContinueTypeMap(hapVerifyInfo.getProfileStr()));
         hapVerifyInfo.setMultiAppMode(parseMultiAppMode(hapVerifyInfo.getProfileStr()));
+        hapVerifyInfo.setKeepDataOnUninstall(parseKeepDataOnUninstall(hapVerifyInfo.getProfileStr()));
         hapVerifyInfo.setAllowAutoControlIntent(parseAllowAutoControlIntent(hapVerifyInfo.getProfileStr()));
     }
 
@@ -2317,6 +2319,19 @@ class ModuleJsonUtil {
             value = jsonObject.get(key).toString();
         }
         return value;
+    }
+
+    private static boolean parseKeepDataOnUninstall(String jsonString) throws BundleException {
+        JSONObject appObj = getAppObj(jsonString);
+        if (!appObj.containsKey(KEEP_DATA_ON_UNINSTALL)) {
+            return false;
+        }
+        Object value = appObj.get(KEEP_DATA_ON_UNINSTALL);
+        if (!(value instanceof Boolean)) {
+            LOG.error(PackingToolErrMsg.PARSE_STAGE_JSON_FAILED.toString("keepDataOnUninstall must be a boolean."));
+            throw new BundleException("keepDataOnUninstall must be a boolean.");
+        }
+        return (Boolean) value;
     }
 
     private static boolean getJsonBooleanValue(JSONObject jsonObject, String key, boolean defaultValue) {

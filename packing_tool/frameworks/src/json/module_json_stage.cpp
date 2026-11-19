@@ -38,6 +38,7 @@ const std::string MIN_API_VERSION = "minAPIVersion";
 const std::string TARGET_API_VERSION = "targetAPIVersion";
 const std::string API_RELEASE_TYPE = "apiReleaseType";
 const std::string DEBUG = "debug";
+const std::string KEEP_DATA_ON_UNINSTALL = "keepDataOnUninstall";
 const std::string ALLOW_AUTO_CONTROL_INTENT = "allowAutoControlIntent";
 const std::string COMPATIBLE = "compatible";
 const std::string RELEASE_TYPE = "releaseType";
@@ -976,6 +977,23 @@ bool ModuleJson::GetStageHapVerifyInfo(HapVerifyInfo& hapVerifyInfo)
     return true;
 }
 
+bool ModuleJson::GetStageKeepDataOnUninstallByAppObj(std::unique_ptr<PtJson>& appObj,
+    bool& keepDataOnUninstall)
+{
+    if (!appObj) {
+        LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs("App node is null!").c_str());
+        return false;
+    }
+    keepDataOnUninstall = false;
+    if (appObj->Contains(KEEP_DATA_ON_UNINSTALL.c_str()) &&
+        appObj->GetBool(KEEP_DATA_ON_UNINSTALL.c_str(), &keepDataOnUninstall) != Result::SUCCESS) {
+        LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs(
+            "keepDataOnUninstall must be a boolean.").c_str());
+        return false;
+    }
+    return true;
+}
+
 bool ModuleJson::SetStageHapVerifyInfoByAppObj(std::unique_ptr<PtJson>& appObj, HapVerifyInfo& hapVerifyInfo)
 {
     if (!appObj) {
@@ -990,6 +1008,7 @@ bool ModuleJson::SetStageHapVerifyInfoByAppObj(std::unique_ptr<PtJson>& appObj, 
     std::string targetBundleName;
     int32_t targetPriority = 0;
     bool debug = false;
+    bool keepDataOnUninstall = false;
     bool allowAutoControlIntent = false;
     MultiAppMode multiAppMode;
     std::list<std::string> assetAccessGroups;
@@ -1038,6 +1057,9 @@ bool ModuleJson::SetStageHapVerifyInfoByAppObj(std::unique_ptr<PtJson>& appObj, 
             "GetStageCompileSdkTypeByAppObj or GetStageCompileSdkVersionByAppObj failed!").c_str());
         return false;
     }
+    if (!GetStageKeepDataOnUninstallByAppObj(appObj, keepDataOnUninstall)) {
+        return false;
+    }
     if (!GetAllowAutoControlIntentByAppObj(appObj, allowAutoControlIntent)) {
         LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs(
             "GetAllowAutoControlIntentByAppObj failed!").c_str());
@@ -1048,6 +1070,7 @@ bool ModuleJson::SetStageHapVerifyInfoByAppObj(std::unique_ptr<PtJson>& appObj, 
     hapVerifyInfo.SetApiVersion(moduleApiVersion);
     hapVerifyInfo.SetTargetBundleName(targetBundleName);
     hapVerifyInfo.SetTargetPriority(targetPriority);
+    hapVerifyInfo.SetKeepDataOnUninstall(keepDataOnUninstall);
     hapVerifyInfo.SetDebug(debug);
     hapVerifyInfo.SetMultiAppMode(multiAppMode);
     hapVerifyInfo.SetAllowAutoControlIntent(allowAutoControlIntent);

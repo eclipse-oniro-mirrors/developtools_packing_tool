@@ -89,6 +89,9 @@ public:
     void SetNotEntrySizeLimit(const int32_t& notEntrySizeLimit);
     const int32_t& GetSumSizeLimit() const;
     void SetSumSizeLimit(const int32_t& sumSizeLimit);
+    bool IsKeepDataOnUninstall() const;
+    void SetKeepDataOnUninstall(bool keepDataOnUninstall);
+
     const bool& IsDebug() const;
     void SetDebug(const bool& debug);
     const std::string& GetCompileSdkVersion() const;
@@ -142,6 +145,7 @@ private:
     int32_t notEntrySizeLimit_ = 2048;
     int32_t sumSizeLimit_ = 10240;
     bool debug_ = false;
+    bool keepDataOnUninstall_ = false;
     std::string compileSdkVersion_ = "";
     std::string compileSdkType_ = "";
     std::list<std::string> proxyDataUris_;

@@ -411,6 +411,7 @@ class HapVerify {
         verifyCollection.setModuleName(baseInfo.getModuleName());
         verifyCollection.setModuleType(baseInfo.getModuleType());
         verifyCollection.setMultiAppMode(baseInfo.getMultiAppMode());
+        verifyCollection.setKeepDataOnUninstall(baseInfo.isKeepDataOnUninstall());
         verifyCollection.setAllowAutoControlIntent(baseInfo.isAllowAutoControlIntent());
         return verifyCollection;
     }
@@ -571,6 +572,14 @@ class HapVerify {
             if (!verifyCollection.getMultiAppMode().equals(hapVerifyInfo.getMultiAppMode())) {
                 String errMsg = "The multiAppMode parameter values are different.";
                 String solution = "Check if the multiAppMode is the same in different modules.";
+                LOG.error(PackingToolErrMsg.APP_FIELDS_DIFFERENT_ERROR.toString(errMsg, solution));
+                return false;
+            }
+            if (verifyCollection.isKeepDataOnUninstall() != hapVerifyInfo.isKeepDataOnUninstall()) {
+                String errMsg = String.format(
+                        "The keepDataOnUninstall fields of Hap[%s] and Hap[%s] are different.",
+                        verifyCollection.getModuleName(), hapVerifyInfo.getModuleName());
+                String solution = "Ensure keepDataOnUninstall has the same value in each HAP (default: false).";
                 LOG.error(PackingToolErrMsg.APP_FIELDS_DIFFERENT_ERROR.toString(errMsg, solution));
                 return false;
             }

@@ -119,6 +119,8 @@ class VerifyCollection {
 
     private MultiAppMode multiAppMode = new MultiAppMode();
 
+    private boolean keepDataOnUninstall = false;
+
     private boolean allowAutoControlIntent = false;
 
     public String getMain() {
@@ -175,6 +177,14 @@ class VerifyCollection {
 
     public void setMultiAppMode(MultiAppMode multiAppMode) {
         this.multiAppMode = multiAppMode;
+    }
+
+    public boolean isKeepDataOnUninstall() {
+        return keepDataOnUninstall;
+    }
+
+    public void setKeepDataOnUninstall(boolean keepDataOnUninstall) {
+        this.keepDataOnUninstall = keepDataOnUninstall;
     }
 
     /**

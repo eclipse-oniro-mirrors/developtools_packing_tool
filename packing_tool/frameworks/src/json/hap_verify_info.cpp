@@ -295,6 +295,16 @@ void HapVerifyInfo::SetSumSizeLimit(const int32_t& sumSizeLimit)
     sumSizeLimit_ = sumSizeLimit;
 }
 
+bool HapVerifyInfo::IsKeepDataOnUninstall() const
+{
+    return keepDataOnUninstall_;
+}
+
+void HapVerifyInfo::SetKeepDataOnUninstall(bool keepDataOnUninstall)
+{
+    keepDataOnUninstall_ = keepDataOnUninstall;
+}
+
 const bool& HapVerifyInfo::IsDebug() const
 {
     return debug_;
