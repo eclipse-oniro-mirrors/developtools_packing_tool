@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,11 +15,16 @@
 
 #include <gtest/gtest.h>
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <string>
+#include <vector>
 
 #define private public
 #define protected public
 #include "hap_verify_utils.h"
 #include "hap_verify_info.h"
+#include "zip_wrapper.h"
 #undef private
 #undef protected
 
@@ -2173,5 +2178,249 @@ HWTEST_F(HapVerifyUtilsTestPart2, SharedVariantsSingletonValidation, Function | 
     EXPECT_TRUE(AppPackingTool::HapVerifyUtils::CheckSharedAppVariantsIsValid({other}));
     other.SetTargetBundleName("");
     EXPECT_FALSE(AppPackingTool::HapVerifyUtils::CheckSharedAppVariantsIsValid({other}));
+}
+
+namespace {
+const std::string ALTERNATE_MODULE_PHONE_JSON =
+    "{\"app\":{\"bundleName\":\"com.example.shared\",\"bundleType\":\"shared\"},"
+    "\"module\":{\"name\":\"library\",\"type\":\"shared\",\"deviceTypes\":[\"phone\"],\"alternateModule\":true}}";
+const std::string NORMAL_PHONE_JSON =
+    "{\"app\":{\"bundleName\":\"com.example.shared\",\"bundleType\":\"shared\"},"
+    "\"module\":{\"name\":\"library\",\"type\":\"shared\",\"deviceTypes\":[\"phone\"]}}";
+const std::string REORDERED_PHONE_JSON =
+    "{\"module\":{\"deviceTypes\":[\"phone\"],\"type\":\"shared\",\"name\":\"library\"},"
+    "\"app\":{\"bundleType\":\"shared\",\"bundleName\":\"com.example.shared\"}}";
+const std::string NORMAL_TABLET_JSON =
+    "{\"app\":{\"bundleName\":\"com.example.shared\",\"bundleType\":\"shared\"},"
+    "\"module\":{\"name\":\"library\",\"type\":\"shared\",\"deviceTypes\":[\"tablet\"]}}";
+const std::string ALTERNATE_MODULE_TABLET_JSON =
+    "{\"app\":{\"bundleName\":\"com.example.shared\",\"bundleType\":\"shared\"},"
+    "\"module\":{\"name\":\"library\",\"type\":\"shared\",\"deviceTypes\":[\"tablet\"],\"alternateModule\":true}}";
+const std::string ALTERNATE_MODULE_APP_TYPE_JSON =
+    "{\"app\":{\"bundleName\":\"com.example.shared\",\"bundleType\":\"app\"},"
+    "\"module\":{\"name\":\"library\",\"type\":\"shared\",\"deviceTypes\":[\"phone\"],\"alternateModule\":true}}";
+}  // namespace
+
+HWTEST_F(HapVerifyUtilsTestPart2, IsSameModuleJsonExcludingAlternateModule, Function | MediumTest | Level1)
+{
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::IsSameModuleJsonExcludingAlternateModule(
+        ALTERNATE_MODULE_PHONE_JSON, NORMAL_PHONE_JSON));
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::IsSameModuleJsonExcludingAlternateModule(
+        NORMAL_PHONE_JSON, REORDERED_PHONE_JSON));
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::IsSameModuleJsonExcludingAlternateModule(
+        ALTERNATE_MODULE_PHONE_JSON, NORMAL_TABLET_JSON));
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::IsSameModuleJsonExcludingAlternateModule(
+        NORMAL_PHONE_JSON, "{}"));
+}
+
+HWTEST_F(HapVerifyUtilsTestPart2, CheckAlternateModuleIsValid, Function | MediumTest | Level1)
+{
+    auto alternateModule = SharedVariant("phone");
+    alternateModule.SetAlternateModule(true);
+    alternateModule.SetProfileStr(ALTERNATE_MODULE_PHONE_JSON);
+    auto normalPhone = SharedVariant("phone");
+    normalPhone.SetProfileStr(NORMAL_PHONE_JSON);
+    auto normalTablet = SharedVariant("tablet");
+    normalTablet.SetProfileStr(NORMAL_TABLET_JSON);
+
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleIsValid(
+        AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos(
+            {"/data/test/alternate_module.hsp", "/data/test/normal_phone.hsp", "/data/test/normal_tablet.hsp"},
+            {alternateModule, normalPhone, normalTablet})));
+
+    auto otherModule = SharedVariant("phone");
+    otherModule.SetModuleName("other");
+    otherModule.SetProfileStr(NORMAL_PHONE_JSON);
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleIsValid(
+        AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos(
+            {"/data/test/alternate_module.hsp", "/data/test/other.hsp"}, {alternateModule, otherModule})));
+
+    auto mismatch = SharedVariant("phone");
+    mismatch.SetProfileStr(NORMAL_TABLET_JSON);
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleIsValid(
+        AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos(
+            {"/data/test/alternate_module.hsp", "/data/test/mismatch.hsp"}, {alternateModule, mismatch})));
+
+    auto onlyAlternateModule = SharedVariant("phone");
+    onlyAlternateModule.SetAlternateModule(true);
+    onlyAlternateModule.SetProfileStr(ALTERNATE_MODULE_PHONE_JSON);
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleIsValid(
+        AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos(
+            {"/data/test/alternate_module.hsp"}, {onlyAlternateModule})));
+
+    auto normalOnly = SharedVariant("phone");
+    normalOnly.SetProfileStr(NORMAL_PHONE_JSON);
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleIsValid(
+        AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos(
+            {"/data/test/normal_phone.hsp"}, {normalOnly})));
+}
+
+HWTEST_F(HapVerifyUtilsTestPart2, CheckAlternateModuleOneNormalOneAlternate, Function | MediumTest | Level1)
+{
+    auto phoneAlternate = SharedVariant("phone");
+    phoneAlternate.SetAlternateModule(true);
+    phoneAlternate.SetProfileStr(ALTERNATE_MODULE_PHONE_JSON);
+    auto duplicatedAlternate = phoneAlternate;
+    auto normalPhone = SharedVariant("phone");
+    normalPhone.SetProfileStr(NORMAL_PHONE_JSON);
+
+    auto conflict = AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos(
+        {"/data/test/alt_phone.hsp", "/data/test/alt_phone_duplicate.hsp", "/data/test/normal_phone.hsp"},
+        {phoneAlternate, duplicatedAlternate, normalPhone});
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleIsValid(conflict));
+    EXPECT_EQ(conflict.normalHapVerifyInfos.size(), 1U);
+    EXPECT_EQ(conflict.normalHapVerifyPaths.size(), 1U);
+
+    auto tabletAlternate = SharedVariant("tablet");
+    tabletAlternate.SetAlternateModule(true);
+    tabletAlternate.SetProfileStr(ALTERNATE_MODULE_TABLET_JSON);
+    auto normalTablet = SharedVariant("tablet");
+    normalTablet.SetProfileStr(NORMAL_TABLET_JSON);
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleIsValid(
+        AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos(
+            {"/data/test/alt_phone.hsp", "/data/test/alt_tablet.hsp", "/data/test/normal_phone.hsp",
+                "/data/test/normal_tablet.hsp"},
+            {phoneAlternate, tabletAlternate, normalPhone, normalTablet})));
+}
+
+HWTEST_F(HapVerifyUtilsTestPart2, CheckAlternateModuleBundleTypeIsValid, Function | MediumTest | Level1)
+{
+    auto normalPhone = SharedVariant("phone");
+    normalPhone.SetProfileStr(NORMAL_PHONE_JSON);
+
+    auto sharedType = SharedVariant("phone");
+    sharedType.SetAlternateModule(true);
+    sharedType.SetProfileStr(ALTERNATE_MODULE_PHONE_JSON);
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleIsValid(
+        AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos(
+            {"/data/test/alternate_module.hsp", "/data/test/normal_phone.hsp"}, {sharedType, normalPhone})));
+
+    auto appType = SharedVariant("phone");
+    appType.SetAlternateModule(true);
+    appType.SetBundleType("app");
+    appType.SetProfileStr(ALTERNATE_MODULE_APP_TYPE_JSON);
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleIsValid(
+        AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos(
+            {"/data/test/alternate_module_app.hsp", "/data/test/normal_phone.hsp"}, {appType, normalPhone})));
+
+    auto atomicServiceType = SharedVariant("phone");
+    atomicServiceType.SetAlternateModule(true);
+    atomicServiceType.SetBundleType("atomicService");
+    atomicServiceType.SetProfileStr(ALTERNATE_MODULE_APP_TYPE_JSON);
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleIsValid(
+        AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos(
+            {"/data/test/alternate_module_atomic.hsp", "/data/test/normal_phone.hsp"},
+            {atomicServiceType, normalPhone})));
+}
+
+namespace {
+const std::string CONSTRAINTS_TEST_DIR = "/data/test/alternate_module_constraints";
+const int64_t ALTERNATE_MODULE_LIMIT = 800LL * 1024;
+const size_t WRITE_FILE_BUFFER_SIZE = 4096;
+
+void RemoveConstraintsTestDir()
+{
+    std::error_code ec;
+    std::filesystem::remove_all(CONSTRAINTS_TEST_DIR, ec);
+}
+
+bool WriteFileOfSize(const std::string& path, int64_t size)
+{
+    std::ofstream stream(path, std::ios::binary | std::ios::trunc);
+    if (!stream.is_open()) {
+        return false;
+    }
+    std::vector<char> buffer(WRITE_FILE_BUFFER_SIZE, 'A');
+    int64_t remaining = size;
+    while (remaining > 0) {
+        int64_t chunk = remaining > static_cast<int64_t>(buffer.size()) ?
+            static_cast<int64_t>(buffer.size()) : remaining;
+        stream.write(buffer.data(), chunk);
+        remaining -= chunk;
+    }
+    stream.close();
+    return stream.good();
+}
+
+bool CreateAlternateHsp(const std::string& hspPath, bool withLibs)
+{
+    AppPackingTool::ZipWrapper zipWrapper(hspPath);
+    if (zipWrapper.Open(APPEND_STATUS_CREATE) != AppPackingTool::ZIP_ERR_SUCCESS) {
+        return false;
+    }
+    if (zipWrapper.WriteStringToZip(ALTERNATE_MODULE_PHONE_JSON, "module.json") !=
+        AppPackingTool::ZIP_ERR_SUCCESS) {
+        zipWrapper.Close();
+        return false;
+    }
+    if (withLibs) {
+        if (zipWrapper.AddEmptyDirToZip(std::string("libs")) != AppPackingTool::ZIP_ERR_SUCCESS) {
+            zipWrapper.Close();
+            return false;
+        }
+        if (zipWrapper.WriteStringToZip("so", "libs/arm64-v8a/libalternate.so") !=
+            AppPackingTool::ZIP_ERR_SUCCESS) {
+            zipWrapper.Close();
+            return false;
+        }
+    }
+    zipWrapper.Close();
+    return true;
+}
+}  // namespace
+
+HWTEST_F(HapVerifyUtilsTestPart2, CheckAlternateModuleConstraintsSize, Function | MediumTest | Level1)
+{
+    RemoveConstraintsTestDir();
+    ASSERT_TRUE(std::filesystem::create_directories(CONSTRAINTS_TEST_DIR));
+    // The size is measured on the final artifact that is packed into the app.
+    const std::string hspPath = CONSTRAINTS_TEST_DIR + "/alt.hsp";
+    ASSERT_TRUE(CreateAlternateHsp(hspPath, false));
+    const std::string overPath = CONSTRAINTS_TEST_DIR + "/over.hsp";
+    ASSERT_TRUE(WriteFileOfSize(overPath, ALTERNATE_MODULE_LIMIT + 1));
+
+    auto alternateModule = SharedVariant("phone");
+    alternateModule.SetAlternateModule(true);
+    alternateModule.SetProfileStr(ALTERNATE_MODULE_PHONE_JSON);
+
+    auto alternateGroups = AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos({hspPath}, {alternateModule});
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleConstraints(
+        alternateGroups.alternateHspPaths, alternateGroups.alternateHspVerifyInfos));
+    auto overGroups = AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos({overPath}, {alternateModule});
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleConstraints(
+        overGroups.alternateHspPaths, overGroups.alternateHspVerifyInfos));
+
+    auto normalModule = SharedVariant("phone");
+    auto normalGroups = AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos({overPath}, {normalModule});
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleConstraints(
+        normalGroups.alternateHspPaths, normalGroups.alternateHspVerifyInfos));
+    RemoveConstraintsTestDir();
+}
+
+HWTEST_F(HapVerifyUtilsTestPart2, CheckAlternateModuleConstraintsLibs, Function | MediumTest | Level1)
+{
+    RemoveConstraintsTestDir();
+    ASSERT_TRUE(std::filesystem::create_directories(CONSTRAINTS_TEST_DIR));
+    const std::string cleanHsp = CONSTRAINTS_TEST_DIR + "/clean.hsp";
+    const std::string libsHsp = CONSTRAINTS_TEST_DIR + "/libs.hsp";
+    ASSERT_TRUE(CreateAlternateHsp(cleanHsp, false));
+    ASSERT_TRUE(CreateAlternateHsp(libsHsp, true));
+
+    auto alternateModule = SharedVariant("phone");
+    alternateModule.SetAlternateModule(true);
+    alternateModule.SetProfileStr(ALTERNATE_MODULE_PHONE_JSON);
+
+    auto cleanGroups = AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos({cleanHsp}, {alternateModule});
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleConstraints(
+        cleanGroups.alternateHspPaths, cleanGroups.alternateHspVerifyInfos));
+    auto libsGroups = AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos({libsHsp}, {alternateModule});
+    EXPECT_FALSE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleConstraints(
+        libsGroups.alternateHspPaths, libsGroups.alternateHspVerifyInfos));
+
+    auto normalModule = SharedVariant("phone");
+    auto normalGroups = AppPackingTool::HapVerifyUtils::SplitHapVerifyInfos({libsHsp}, {normalModule});
+    EXPECT_TRUE(AppPackingTool::HapVerifyUtils::CheckAlternateModuleConstraints(
+        normalGroups.alternateHspPaths, normalGroups.alternateHspVerifyInfos));
+    RemoveConstraintsTestDir();
 }
 } // namespace OHOS

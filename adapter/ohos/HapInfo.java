@@ -190,6 +190,11 @@ public class HapInfo {
     public boolean isModuleAbcCompressed = false;
 
     /**
+     * Indicates whether the module is an alternate module.
+     */
+    public boolean alternateModule = false;
+
+    /**
      * Indicates the descriptions of HapInfo.
      */
     private HashMap<String, String> descriptions = new HashMap<>();

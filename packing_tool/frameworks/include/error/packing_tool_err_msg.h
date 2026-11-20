@@ -108,6 +108,11 @@ public:
     static const ErrorMsg CHECK_APP_PLUGIN_FAILED;
     static const ErrorMsg CHECK_DEDUPLICATE_HAR_FAILED;
     static const ErrorMsg CHECK_KERNEL_PERMISSION_COMPRESSION_FAILED;
+    static const ErrorMsg ALTERNATE_MODULE_BUNDLE_TYPE_INVALID;
+    static const ErrorMsg ALTERNATE_MODULE_NORMAL_MODULE_NOT_FOUND;
+    static const ErrorMsg ALTERNATE_MODULE_MODULE_JSON_MISMATCH;
+    static const ErrorMsg ALTERNATE_MODULE_SIZE_EXCEEDED;
+    static const ErrorMsg ALTERNATE_MODULE_CONTAINS_LIBS;
 
     // ==================== Module JSON check errors (Type: 13) ====================
     static const ErrorMsg PARSE_JSON_OBJECT_EXCEPTION;

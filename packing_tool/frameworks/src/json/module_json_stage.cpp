@@ -67,6 +67,7 @@ const std::string DISTRIBUTION_FILTER = "distributionFilter";
 const std::string DEPENDENCIES = "dependencies";
 const std::string EXTENSION_ABILITIES = "extensionAbilities";
 const std::string INSTALLATION_FREE = "installationFree";
+const std::string ALTERNATE_MODULE = "alternateModule";
 const std::string COMPRESS_NATIVE_LIBS = "compressNativeLibs";
 const std::string EXTRACT_NATIVE_LIBS = "extractNativeLibs";
 const std::string LIB_ISOLATION = "libIsolation";
@@ -449,6 +450,34 @@ bool ModuleJson::GetStageInstallationFreeByModuleObj(std::unique_ptr<PtJson>& mo
                 std::string("Module node get ") + INSTALLATION_FREE + " failed!").c_str());
             return false;
         }
+    }
+    return true;
+}
+
+bool ModuleJson::GetStageAlternateModule(bool& alternateModule)
+{
+    std::unique_ptr<PtJson> moduleObj;
+    if (!GetModuleObject(moduleObj)) {
+        LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs("GetModuleObject failed!").c_str());
+        return false;
+    }
+    return GetStageAlternateModuleByModuleObj(moduleObj, alternateModule);
+}
+
+bool ModuleJson::GetStageAlternateModuleByModuleObj(std::unique_ptr<PtJson>& moduleObj, bool& alternateModule)
+{
+    if (!moduleObj) {
+        LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs("Module node is null!").c_str());
+        return false;
+    }
+    alternateModule = false;
+    if (!moduleObj->Contains(ALTERNATE_MODULE.c_str())) {
+        return true;
+    }
+    if (moduleObj->GetBool(ALTERNATE_MODULE.c_str(), &alternateModule) != Result::SUCCESS) {
+        LOGE("%s", PackingToolErrMsg::PARSE_JSON_FAILED.toStringWithArgs(
+            "The alternateModule parameter in module.json must be a boolean value.").c_str());
+        return false;
     }
     return true;
 }
@@ -1089,6 +1118,12 @@ bool ModuleJson::SetStageHapVerifyInfoByModuleObj(std::unique_ptr<PtJson>& modul
             "GetStageInstallationFreeByModuleObj failed!").c_str());
         return false;
     }
+    bool alternateModule = false;
+    if (!GetStageAlternateModuleByModuleObj(moduleObj, alternateModule)) {
+        LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs(
+            "GetStageAlternateModuleByModuleObj failed!").c_str());
+        return false;
+    }
     if (!GetTargetModuleNameByModuleObj(moduleObj, targetModuleName) ||
         !GetTargetModulePriorityByModuleObj(moduleObj, targetModulePriority)) {
         LOGE("%s", PackingToolErrMsg::PARSE_STAGE_JSON_FAILED.toStringWithArgs(
@@ -1099,6 +1134,7 @@ bool ModuleJson::SetStageHapVerifyInfoByModuleObj(std::unique_ptr<PtJson>& modul
     hapVerifyInfo.SetDeviceTypes(deviceTypes);
     hapVerifyInfo.SetModuleType(moduleType);
     hapVerifyInfo.SetInstallationFree(installationFree);
+    hapVerifyInfo.SetAlternateModule(alternateModule);
     hapVerifyInfo.SetTargetModuleName(targetModuleName);
     hapVerifyInfo.SetTargetModulePriority(targetModulePriority);
     return true;

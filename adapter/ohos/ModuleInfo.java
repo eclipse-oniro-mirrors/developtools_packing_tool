@@ -154,6 +154,11 @@ class ModuleInfo {
     public boolean isModuleAbcCompressed = false;
 
     /**
+     * Indicates whether the module is an alternate module.
+     */
+    public boolean alternateModule = false;
+
+    /**
      * Indicates the skillProfiles of ModuleInfo.
      */
     public List<SkillProfileInfo> skillProfiles = new ArrayList<>();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -55,6 +55,13 @@ struct VerifyCollection {
     bool allowAutoControlIntent = false;
 };
 
+struct HapVerifyInfoGroups {
+    std::list<HapVerifyInfo> normalHapVerifyInfos;
+    std::list<HapVerifyInfo> alternateHspVerifyInfos;
+    std::list<std::string> normalHapVerifyPaths;
+    std::list<std::string> alternateHspPaths;
+};
+
 enum PolicyValueType {
     API_VERSION = 0,
     SCREEN_SHAPE,
@@ -76,6 +83,15 @@ public:
     static bool CheckSharedAppIsValid(const std::list<HapVerifyInfo>& hapVerifyInfos);
     // Validate the shared variant set, then preserve each module's original single-package checks.
     static bool CheckSharedAppVariantsIsValid(const std::list<HapVerifyInfo>& hapVerifyInfos);
+    static HapVerifyInfoGroups SplitHapVerifyInfos(const std::list<std::string>& filePaths,
+        const std::list<HapVerifyInfo>& hapVerifyInfos);
+    // Validate that each alternate module is the same as one of the same-name normal hsp.
+    static bool CheckAlternateModuleIsValid(const HapVerifyInfoGroups& groups);
+    // Validate alternate module file size and root libs directory on the final hap/hsp artifacts.
+    static bool CheckAlternateModuleConstraints(const std::list<std::string>& alternateHspPaths,
+        const std::list<HapVerifyInfo>& alternateHspVerifyInfos);
+    // Compare two module.json strings, ignoring module.alternateModule.
+    static bool IsSameModuleJsonExcludingAlternateModule(const std::string& firstJson, const std::string& secondJson);
     static bool CheckFileSizeIsValid(const std::list<HapVerifyInfo>& hapVerifyInfos);
 
 private:

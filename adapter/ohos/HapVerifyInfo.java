@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -119,6 +119,11 @@ class HapVerifyInfo {
      * Indicates dependency of module.
      */
     private List<DependencyItem> dependencyItemList = new ArrayList<>();
+
+    /**
+     * Indicates whether the module is an alternate module.
+     */
+    private boolean alternateModule = false;
 
     /**
      * Indicates is config.json string or module.json string of module.
@@ -459,6 +464,20 @@ class HapVerifyInfo {
                 dependencies.add(item.getModuleName());
             }
         }
+    }
+
+    /**
+     * get whether the module is an alternate module.
+     */
+    public boolean isAlternateModule() {
+        return alternateModule;
+    }
+
+    /**
+     * set whether the module is an alternate module.
+     */
+    public void setAlternateModule(boolean alternateModule) {
+        this.alternateModule = alternateModule;
     }
 
     public String getBundleType() {

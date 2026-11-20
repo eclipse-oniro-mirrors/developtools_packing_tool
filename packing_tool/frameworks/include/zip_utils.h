@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -40,6 +40,7 @@ public:
     static bool IsFileExistsInZip(const std::string& zipFilePath, const std::string& filename);
     static bool IsFileNameExistsInZip(const std::string& zipFilePath, const std::string& filename);
     static bool IsPathPrefixExistsInZip(const std::string& zipFilePath, const std::string& pathPrefix);
+    static bool IsDirectoryExistsInZip(const std::string& zipFilePath, const std::string& directoryName);
 
     static bool GetFileContentFromZip(const std::string& zipFilePath, const std::string& filename,
         std::string& fileContent);

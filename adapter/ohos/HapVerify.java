@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,10 +15,12 @@
 
 package ohos;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,6 +28,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * check hap is verify.
@@ -45,6 +49,7 @@ class HapVerify {
     private static final String NULL_DEVICE_TYPE = "nullDeviceType";
     private static final long FILE_LENGTH_1M = 1024 * 1024L;
     private static final long FILE_LENGTH_1KB = 1024L;
+    private static final long ALTERNATE_MODULE_MAX_FILE_SIZE = 800L * 1024L;
     private static final double FILE_SIZE_OFFSET_DOUBLE = 0.01d;
     private static final int FILE_SIZE_DECIMAL_PRECISION = 2;
     private static final String HAP_SUFFIX = ".hap";
@@ -271,6 +276,171 @@ class HapVerify {
                         "Correct this HSP according to the preceding single-package diagnostic."));
                 return false;
             }
+        }
+        return true;
+    }
+
+    /**
+     * Hap verify infos split into normal and alternate hsp groups by a single traversal.
+     */
+    static final class HapVerifyInfoGroups {
+        final List<HapVerifyInfo> normalHapVerifyInfos = new ArrayList<>();
+        final List<HapVerifyInfo> alternateHspVerifyInfos = new ArrayList<>();
+        final List<String> normalHapVerifyPaths = new ArrayList<>();
+        final List<String> alternateHspPaths = new ArrayList<>();
+
+        static HapVerifyInfoGroups create(List<String> filePaths, List<HapVerifyInfo> hapVerifyInfos) {
+            HapVerifyInfoGroups groups = new HapVerifyInfoGroups();
+            for (int i = 0; i < hapVerifyInfos.size(); i++) {
+                HapVerifyInfo info = hapVerifyInfos.get(i);
+                if (info.isAlternateModule()) {
+                    groups.alternateHspVerifyInfos.add(info);
+                    groups.alternateHspPaths.add(filePaths.get(i));
+                } else {
+                    groups.normalHapVerifyInfos.add(info);
+                    groups.normalHapVerifyPaths.add(filePaths.get(i));
+                }
+            }
+            return groups;
+        }
+    }
+
+    private static final class SameNameModuleResult {
+        final List<String> paths = new ArrayList<>();
+        boolean hasSameModuleJson = false;
+    }
+
+    private static SameNameModuleResult findSameNameNormalModules(String moduleName, String alternateProfile,
+            HapVerifyInfoGroups groups) throws BundleException {
+        SameNameModuleResult result = new SameNameModuleResult();
+        for (int j = 0; j < groups.normalHapVerifyInfos.size(); j++) {
+            HapVerifyInfo normalInfo = groups.normalHapVerifyInfos.get(j);
+            if (!moduleName.isEmpty() && moduleName.equals(normalInfo.getModuleName())) {
+                result.paths.add(groups.normalHapVerifyPaths.get(j));
+                if (ModuleJsonUtil.isSameModuleJsonExcludingAlternateModule(alternateProfile,
+                        normalInfo.getProfileStr())) {
+                    result.hasSameModuleJson = true;
+                    groups.normalHapVerifyInfos.remove(j);
+                    groups.normalHapVerifyPaths.remove(j);
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Check the alternate module set: each alternate module must be a shared module and must be the same as
+     * one of the same-name normal hsp.
+     *
+     * @param groups is the hap verify infos split by a single traversal
+     * @return the result
+     * @throws BundleException Throws this exception if the json is not standard
+     */
+    static boolean checkAlternateModuleIsValid(HapVerifyInfoGroups groups) throws BundleException {
+        HapVerifyInfoGroups availableGroups = new HapVerifyInfoGroups();
+        availableGroups.normalHapVerifyInfos.addAll(groups.normalHapVerifyInfos);
+        availableGroups.normalHapVerifyPaths.addAll(groups.normalHapVerifyPaths);
+        for (int i = 0; i < groups.alternateHspVerifyInfos.size(); i++) {
+            HapVerifyInfo alternateModuleInfo = groups.alternateHspVerifyInfos.get(i);
+            String moduleName = alternateModuleInfo.getModuleName();
+            LOG.warning("alternate module detected, moduleName: " + moduleName);
+            String alternateModulePath = groups.alternateHspPaths.get(i);
+            if (!checkAlternateModuleBundleType(alternateModulePath, alternateModuleInfo)) {
+                return false;
+            }
+            SameNameModuleResult sameName = findSameNameNormalModules(moduleName,
+                    alternateModuleInfo.getProfileStr(), availableGroups);
+            if (sameName.paths.isEmpty()) {
+                String cause = "The alternate module '" + alternateModulePath + "' with moduleName '"
+                        + moduleName + "' has no available same-name normal hsp in the packing input.";
+                LOG.error(PackingToolErrMsg.ALTERNATE_MODULE_NORMAL_MODULE_NOT_FOUND.toString(cause));
+                return false;
+            }
+            if (!sameName.hasSameModuleJson) {
+                String cause = "The alternate module '" + alternateModulePath + "' with moduleName '"
+                        + moduleName + "' is not the same as any same-name normal hsp "
+                        + sameName.paths + " except alternateModule.";
+                LOG.error(PackingToolErrMsg.ALTERNATE_MODULE_MODULE_JSON_MISMATCH.toString(cause));
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean checkAlternateModuleBundleType(String alternateModulePath,
+            HapVerifyInfo alternateModuleInfo) {
+        String bundleType = alternateModuleInfo.getBundleType();
+        if (TYPE_SHARED.equals(bundleType)) {
+            return true;
+        }
+        String cause = "The alternate module '" + alternateModulePath + "' with moduleName '"
+                + alternateModuleInfo.getModuleName() + "' has bundleType '" + bundleType
+                + "', but only bundleType 'shared' supports alternateModule.";
+        LOG.error(PackingToolErrMsg.ALTERNATE_MODULE_BUNDLE_TYPE_INVALID.toString(cause));
+        return false;
+    }
+
+    /**
+     * Check the alternate module file size and root libs directory.
+     *
+     * @param alternateHspPaths is the path list of alternate module hsps
+     * @param alternateHspVerifyInfos is the verify info list of alternate module hsps
+     * @return the result
+     */
+    static boolean checkAlternateModuleConstraints(List<String> alternateHspPaths,
+            List<HapVerifyInfo> alternateHspVerifyInfos) {
+        for (int i = 0; i < alternateHspPaths.size(); i++) {
+            String path = alternateHspPaths.get(i);
+            HapVerifyInfo info = alternateHspVerifyInfos.get(i);
+            if (!checkAlternateModuleFileSize(path, info)) {
+                return false;
+            }
+            if (!checkAlternateModuleHasNoLibs(path, info)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean checkAlternateModuleFileSize(String artifactPath, HapVerifyInfo alternateModuleInfo) {
+        long fileSize = FileUtils.getFileSize(artifactPath);
+        if (fileSize <= 0) {
+            LOG.error(PackingToolErrMsg.ALTERNATE_MODULE_SIZE_EXCEEDED.toString(
+                    "Failed to get the alternate module hsp size, path '" + artifactPath + "'."));
+            return false;
+        }
+        if (fileSize > ALTERNATE_MODULE_MAX_FILE_SIZE) {
+            LOG.error(PackingToolErrMsg.ALTERNATE_MODULE_SIZE_EXCEEDED.toString(
+                    "The alternate module '" + artifactPath + "' with moduleName '"
+                            + alternateModuleInfo.getModuleName() + "' is " + fileSize
+                            + " bytes, exceeding the limit of " + ALTERNATE_MODULE_MAX_FILE_SIZE + " bytes."));
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean checkAlternateModuleHasNoLibs(String artifactPath, HapVerifyInfo alternateModuleInfo) {
+        String libsEntry = Constants.LIBS_DIR + "/";
+        try (ZipFile zipFile = new ZipFile(artifactPath)) {
+            Enumeration<? extends ZipEntry> entries = zipFile.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                String entryName = entry.getName();
+                boolean isLibsDirEntry = entryName.equals(Constants.LIBS_DIR) && entry.isDirectory();
+                if (isLibsDirEntry || entryName.equals(libsEntry) || entryName.startsWith(libsEntry)) {
+                    LOG.error(PackingToolErrMsg.ALTERNATE_MODULE_CONTAINS_LIBS.toString(
+                            "The alternate module '" + artifactPath + "' with moduleName '"
+                                    + alternateModuleInfo.getModuleName()
+                                    + "' contains a root libs directory."));
+                    return false;
+                }
+            }
+        } catch (IOException exception) {
+            LOG.error(PackingToolErrMsg.ALTERNATE_MODULE_CONTAINS_LIBS.toString(
+                    "Failed to read the alternate module hsp '" + artifactPath + "': "
+                            + exception.getMessage()));
+            return false;
         }
         return true;
     }

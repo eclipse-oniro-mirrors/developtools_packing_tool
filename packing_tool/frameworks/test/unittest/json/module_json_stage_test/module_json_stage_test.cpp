@@ -3039,4 +3039,67 @@ HWTEST_F(ModuleJsonStageTest, GetStageHapVerifyInfoAutoControlIntent_0200, Funct
     }
 }
 
+/*
+ * @tc.name: GetStageAlternateModule_0100
+ * @tc.desc: test get stage alternate module with true value
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(ModuleJsonStageTest, GetStageAlternateModule_0100, Function | MediumTest | Level1)
+{
+    OHOS::AppPackingTool::ModuleJson moduleJson;
+    bool alternateModule = false;
+    moduleJson.Release();
+    EXPECT_FALSE(moduleJson.GetStageAlternateModule(alternateModule));
+
+    const std::string alternateModuleJson = "{\"app\":{\"bundleType\":\"shared\"},"
+        "\"module\":{\"name\":\"library\",\"type\":\"shared\",\"alternateModule\":true}}";
+    EXPECT_TRUE(moduleJson.ParseFromString(alternateModuleJson));
+    EXPECT_TRUE(moduleJson.GetStageAlternateModule(alternateModule));
+    EXPECT_TRUE(alternateModule);
+
+    std::unique_ptr<PtJson> moduleObj = nullptr;
+    EXPECT_TRUE(moduleJson.GetModuleObject(moduleObj));
+    alternateModule = false;
+    EXPECT_TRUE(moduleJson.GetStageAlternateModuleByModuleObj(moduleObj, alternateModule));
+    EXPECT_TRUE(alternateModule);
+}
+
+/*
+ * @tc.name: GetStageAlternateModule_0200
+ * @tc.desc: test get stage alternate module with missing key
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(ModuleJsonStageTest, GetStageAlternateModule_0200, Function | MediumTest | Level1)
+{
+    OHOS::AppPackingTool::ModuleJson moduleJson;
+    bool alternateModule = true;
+    moduleJson.Release();
+    const std::string normalJson = "{\"app\":{\"bundleType\":\"shared\"},"
+        "\"module\":{\"name\":\"library\",\"type\":\"shared\"}}";
+    EXPECT_TRUE(moduleJson.ParseFromString(normalJson));
+    EXPECT_TRUE(moduleJson.GetStageAlternateModule(alternateModule));
+    EXPECT_FALSE(alternateModule);
+}
+
+/*
+ * @tc.name: GetStageAlternateModule_0300
+ * @tc.desc: test get stage alternate module with a non boolean value
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(ModuleJsonStageTest, GetStageAlternateModule_0300, Function | MediumTest | Level1)
+{
+    OHOS::AppPackingTool::ModuleJson moduleJson;
+    std::unique_ptr<PtJson> moduleObj = nullptr;
+    bool alternateModule = false;
+    moduleJson.Release();
+    const std::string invalidJson = "{\"app\":{\"bundleType\":\"shared\"},"
+        "\"module\":{\"name\":\"library\",\"type\":\"shared\",\"alternateModule\":\"true\"}}";
+    EXPECT_TRUE(moduleJson.ParseFromString(invalidJson));
+    EXPECT_FALSE(moduleJson.GetStageAlternateModule(alternateModule));
+    EXPECT_TRUE(moduleJson.GetModuleObject(moduleObj));
+    EXPECT_FALSE(moduleJson.GetStageAlternateModuleByModuleObj(moduleObj, alternateModule));
+}
 }

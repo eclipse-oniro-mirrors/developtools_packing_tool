@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -59,6 +59,8 @@ public:
     void SetModuleType(const std::string& moduleType);
     const bool& IsInstallationFree() const;
     void SetInstallationFree(const bool& isInstallationFree);
+    const bool& IsAlternateModule() const;
+    void SetAlternateModule(const bool& alternateModule);
     const std::list<std::string>& GetDependencies() const;
     void SetDependencies(const std::list<std::string>& dependencies);
     const std::list<DependencyItem>& GetDependencyItemList() const;
@@ -125,6 +127,7 @@ private:
     std::string moduleType_ = "";
     std::string atomicServiceType_ = "";
     bool isInstallationFree_ = false;
+    bool alternateModule_ = false;
     std::list<std::string> dependencies_;
     std::list<DependencyItem> dependencyItemList_;
     // json file content string

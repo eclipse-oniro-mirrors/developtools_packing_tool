@@ -91,6 +91,8 @@ public:
         const std::map<std::string, std::string>& resourceMap, DistroFilter& distroFilter);
     bool GetStageInstallationFree(bool& installationFree);
     bool GetStageInstallationFreeByModuleObj(std::unique_ptr<PtJson>& moduleObj, bool& installationFree);
+    bool GetStageAlternateModule(bool& alternateModule);
+    bool GetStageAlternateModuleByModuleObj(std::unique_ptr<PtJson>& moduleObj, bool& alternateModule);
     bool GetStageBundleType(std::string& bundleType);
     bool GetStageCompileSdkType(std::string& compileSdkType);
     bool GetStageCompileSdkTypeByAppObj(std::unique_ptr<PtJson>& appObj, std::string& compileSdkType);
