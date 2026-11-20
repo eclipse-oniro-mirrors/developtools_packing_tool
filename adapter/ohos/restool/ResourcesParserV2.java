@@ -847,6 +847,10 @@ public class ResourcesParserV2 implements ResourcesParser {
                 idssItemV2.resId = buf.getInt();
                 idssItemV2.offset = buf.getInt();
                 int nameLen = buf.getInt();
+                if (nameLen < 0 || nameLen > buf.remaining()) {
+                    LOG.warning("ResourcesParserV2::parseIDSSZone invalid nameLen: " + nameLen);
+                    return false;
+                }
                 byte[] name = new byte[nameLen];
                 buf.get(name);
                 idssItemV2.nameLen = nameLen;
