@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -228,6 +228,66 @@ bool ZipUtils::IsPathPrefixExistsInZip(const std::string& zipFilePath, const std
             break;
         }
     }
+    unzClose(unzipFile);
+    return isExist;
+}
+
+bool ContainsDirectoryInZip(unzFile unzipFile, const unz_global_info64& unzGlobalInfo,
+    const std::string& directoryName)
+{
+    char filePathInZip[MAX_ZIP_BUFFER_SIZE] = {0};
+    unz_file_info64 fileInfo;
+    const std::string dirPrefix = directoryName + "/";
+    for (size_t i = 0; i < unzGlobalInfo.number_entry; ++i) {
+        if (unzGetCurrentFileInfo64(unzipFile, &fileInfo, filePathInZip, MAX_ZIP_BUFFER_SIZE, NULL, 0, NULL, 0) !=
+            UNZ_OK) {
+            LOGE("%s", PackingToolErrMsg::COMPRESS_FILE_EXCEPTION.toStringWithArgs(
+                "Get current file info in zip failed!").c_str());
+            break;
+        }
+        std::string strFilePathInZip(filePathInZip);
+        bool isDirectoryEntry = fileInfo.external_fa == ZIP_FILE_ATTR_DIRECTORY;
+        if (strFilePathInZip.rfind(dirPrefix, 0) == 0 ||
+            (isDirectoryEntry && strFilePathInZip == directoryName)) {
+            return true;
+        }
+        int ret = unzGoToNextFile(unzipFile);
+        if (ret == UNZ_END_OF_LIST_OF_FILE) {
+            break;
+        } else if (ret != UNZ_OK) {
+            LOGE("%s", PackingToolErrMsg::COMPRESS_FILE_EXCEPTION.toStringWithArgs(
+                "Go to next file in zip failed!").c_str());
+            break;
+        }
+    }
+    return false;
+}
+
+bool ZipUtils::IsDirectoryExistsInZip(const std::string& zipFilePath, const std::string& directoryName)
+{
+    if (directoryName.empty()) {
+        return false;
+    }
+    fs::path fsZipFilePath(zipFilePath);
+    if (!fs::is_regular_file(fsZipFilePath)) {
+        LOGE("%s", PackingToolErrMsg::FILE_NOT_EXIST.toStringWithArgs(
+            "Zip file is not a regular file!").c_str());
+        return false;
+    }
+    unzFile unzipFile = unzOpen64(zipFilePath.c_str());
+    if (unzipFile == nullptr) {
+        LOGE("%s", PackingToolErrMsg::COMPRESS_FILE_EXCEPTION.toStringWithArgs(
+            ("Open zip file failed! zipFilePath=" + zipFilePath).c_str()).c_str());
+        return false;
+    }
+    unz_global_info64 unzGlobalInfo;
+    if (unzGetGlobalInfo64(unzipFile, &unzGlobalInfo) != UNZ_OK) {
+        LOGE("%s", PackingToolErrMsg::COMPRESS_FILE_EXCEPTION.toStringWithArgs(
+            ("Get zip global info failed! zipFilePath=" + zipFilePath).c_str()).c_str());
+        unzClose(unzipFile);
+        return false;
+    }
+    bool isExist = ContainsDirectoryInZip(unzipFile, unzGlobalInfo, directoryName);
     unzClose(unzipFile);
     return isExist;
 }

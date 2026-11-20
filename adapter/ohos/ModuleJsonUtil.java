@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -143,6 +143,7 @@ class ModuleJsonUtil {
     private static final String DEPENDENCIES = "dependencies";
     private static final String EXTENSION_ABILITIES = "extensionAbilities";
     private static final String INSTALLATION_FREE = "installationFree";
+    private static final String ALTERNATE_MODULE = "alternateModule";
     private static final String PATCH_JSON = "patch.json";
     private static final String PATCH_VERSION_CODE = "patchVersionCode";
     private static final String PATCH_VERSION_NAME = "patchVersionName";
@@ -1035,6 +1036,7 @@ class ModuleJsonUtil {
         hapVerifyInfo.setModuleType(parseModuleType(hapVerifyInfo.getProfileStr()));
         hapVerifyInfo.setDependencyItemList(parseDependencies(hapVerifyInfo.getProfileStr(), bundleName));
         hapVerifyInfo.setInstallationFree(parseStageInstallation(hapVerifyInfo.getProfileStr()));
+        hapVerifyInfo.setAlternateModule(parseStageAlternateModule(hapVerifyInfo.getProfileStr()));
         hapVerifyInfo.setCompressNativeLibs(parseStageCompressNativeLibs(hapVerifyInfo.getProfileStr()));
         hapVerifyInfo.setExtractNativeLibs(parseStageExtractNativeLibs(hapVerifyInfo.getProfileStr()));
         hapVerifyInfo.setHasExecutableBinaryPaths(parseHasExecutableBinaryPaths(hapVerifyInfo.getProfileStr()));
@@ -1451,6 +1453,43 @@ class ModuleJsonUtil {
             return moduleObj.getBoolean(INSTALLATION_FREE);
         }
         return false;
+    }
+
+    static boolean parseStageAlternateModule(String jsonString) throws BundleException {
+        JSONObject moduleObj = getModuleObj(jsonString);
+        if (!moduleObj.containsKey(ALTERNATE_MODULE)) {
+            return false;
+        }
+        Object value = moduleObj.get(ALTERNATE_MODULE);
+        if (!(value instanceof Boolean)) {
+            String errMsg = "The 'alternateModule' parameter in module.json must be a boolean value.";
+            LOG.error(PackingToolErrMsg.PARSE_JSON_FAILED.toString(errMsg));
+            throw new BundleException(errMsg);
+        }
+        return (Boolean) value;
+    }
+
+    /**
+     * Check whether two module.json files are the same except the alternateModule flag.
+     *
+     * @param firstJsonString is the first module.json string.
+     * @param secondJsonString is the second module.json string.
+     * @return true if the two module.json are the same except module.alternateModule.
+     */
+    static boolean isSameModuleJsonExcludingAlternateModule(String firstJsonString, String secondJsonString) {
+        JSONObject firstRootObj = parseJsonObject(firstJsonString);
+        JSONObject secondRootObj = parseJsonObject(secondJsonString);
+        if (firstRootObj == null || secondRootObj == null) {
+            return false;
+        }
+        JSONObject firstModuleObj = firstRootObj.getJSONObject(MODULE);
+        JSONObject secondModuleObj = secondRootObj.getJSONObject(MODULE);
+        if (firstModuleObj == null || secondModuleObj == null) {
+            return false;
+        }
+        firstModuleObj.remove(ALTERNATE_MODULE);
+        secondModuleObj.remove(ALTERNATE_MODULE);
+        return firstRootObj.equals(secondRootObj);
     }
 
     static String parseStageBundleType(String jsonString) throws BundleException {

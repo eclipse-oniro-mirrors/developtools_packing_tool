@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -554,5 +554,60 @@ HWTEST_F(ZipUtilsTest, GetResourceMapFromZip_0900, Function | MediumTest | Level
     bool result = zipUtils.GetResourceMapFromZip(nonRegularFilePath, resourceMap);
     EXPECT_FALSE(result);
     EXPECT_TRUE(resourceMap.empty());
+}
+
+/*
+ * @tc.name: IsDirectoryExistsInZip_0100
+ * @tc.desc: An explicit empty directory entry is detected.
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(ZipUtilsTest, IsDirectoryExistsInZip_0100, Function | MediumTest | Level1)
+{
+    DeleteFilePath(OUT_PATH);
+    OHOS::AppPackingTool::ZipWrapper zipWrapper{std::string(OUT_PATH)};
+    ASSERT_EQ(zipWrapper.Open(APPEND_STATUS_CREATE), OHOS::AppPackingTool::ZIP_ERR_SUCCESS);
+    ASSERT_EQ(zipWrapper.AddEmptyDirToZip(std::string("libs")), OHOS::AppPackingTool::ZIP_ERR_SUCCESS);
+    zipWrapper.Close();
+
+    OHOS::AppPackingTool::ZipUtils zipUtils;
+    EXPECT_TRUE(zipUtils.IsDirectoryExistsInZip(OUT_PATH, "libs"));
+    EXPECT_TRUE(zipUtils.IsDirectoryExistsInZip(OUT_PATH, "libs/"));
+    EXPECT_FALSE(zipUtils.IsDirectoryExistsInZip(OUT_PATH, "an"));
+    DeleteFilePath(OUT_PATH);
+}
+
+/*
+ * @tc.name: IsDirectoryExistsInZip_0200
+ * @tc.desc: A directory without its own entry is detected through child entries.
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(ZipUtilsTest, IsDirectoryExistsInZip_0200, Function | MediumTest | Level1)
+{
+    DeleteFilePath(OUT_PATH);
+    OHOS::AppPackingTool::ZipWrapper zipWrapper{std::string(OUT_PATH)};
+    ASSERT_EQ(zipWrapper.Open(APPEND_STATUS_CREATE), OHOS::AppPackingTool::ZIP_ERR_SUCCESS);
+    ASSERT_EQ(zipWrapper.WriteStringToZip("so", "libs/arm64-v8a/libalternate.so"),
+        OHOS::AppPackingTool::ZIP_ERR_SUCCESS);
+    zipWrapper.Close();
+
+    OHOS::AppPackingTool::ZipUtils zipUtils;
+    EXPECT_TRUE(zipUtils.IsDirectoryExistsInZip(OUT_PATH, "libs"));
+    EXPECT_FALSE(zipUtils.IsDirectoryExistsInZip(OUT_PATH, "lib"));
+    DeleteFilePath(OUT_PATH);
+}
+
+/*
+ * @tc.name: IsDirectoryExistsInZip_0300
+ * @tc.desc: Invalid zip and empty directory name are rejected.
+ * @tc.type: FUNC
+ * @tc.require:
+ */
+HWTEST_F(ZipUtilsTest, IsDirectoryExistsInZip_0300, Function | MediumTest | Level1)
+{
+    OHOS::AppPackingTool::ZipUtils zipUtils;
+    EXPECT_FALSE(zipUtils.IsDirectoryExistsInZip("invalid.zip", "libs"));
+    EXPECT_FALSE(zipUtils.IsDirectoryExistsInZip(OUT_PATH, ""));
 }
 } // namespace OHOS

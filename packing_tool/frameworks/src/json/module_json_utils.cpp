@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -306,6 +306,18 @@ bool ModuleJsonUtils::CheckAppAtomicServiceCompressedSizeValid(std::map<std::str
     return HapVerifyUtils::CheckFileSizeIsValid(hapVerifyInfos);
 }
 
+bool CheckSharedBundleTypeIsValid(const std::list<HapVerifyInfo>& hapVerifyInfos)
+{
+    for (const auto& hapVerifyInfo : hapVerifyInfos) {
+        if (hapVerifyInfo.GetBundleType().compare(TYPE_SHARED) == 0) {
+            LOGE("%s", PackingToolErrMsg::PARSE_JSON_FAILED.toStringWithArgs(
+                std::string("bundle type cannot be ") + TYPE_SHARED + " when app is not shared").c_str());
+            return false;
+        }
+    }
+    return true;
+}
+
 // java : checkHapIsValid
 bool ModuleJsonUtils::CheckHapsIsValid(const std::list<std::string>& fileList, const bool& isSharedApp)
 {
@@ -315,12 +327,27 @@ bool ModuleJsonUtils::CheckHapsIsValid(const std::list<std::string>& fileList, c
             "GetHapVerifyInfosfromFileList failed!").c_str());
         return false;
     }
-    bool hasSharedHsp = std::any_of(hapVerifyInfos.begin(), hapVerifyInfos.end(),
+    HapVerifyInfoGroups groups = HapVerifyUtils::SplitHapVerifyInfos(fileList, hapVerifyInfos);
+    if (!groups.alternateHspVerifyInfos.empty()) {
+        if (!HapVerifyUtils::CheckAlternateModuleIsValid(groups)) {
+            LOGE("%s", PackingToolErrMsg::PARSE_JSON_FAILED.toStringWithArgs(
+                "CheckAlternateModuleIsValid failed!").c_str());
+            return false;
+        }
+        if (!HapVerifyUtils::CheckAlternateModuleConstraints(
+            groups.alternateHspPaths, groups.alternateHspVerifyInfos)) {
+            LOGE("%s", PackingToolErrMsg::PARSE_JSON_FAILED.toStringWithArgs(
+                "CheckAlternateModuleConstraints failed!").c_str());
+            return false;
+        }
+    }
+    const std::list<HapVerifyInfo>& normalHapVerifyInfos = groups.normalHapVerifyInfos;
+    bool hasSharedHsp = std::any_of(normalHapVerifyInfos.begin(), normalHapVerifyInfos.end(),
         [](const HapVerifyInfo& info) {
             return info.GetBundleType() == TYPE_SHARED && info.GetFileType() == HSP_SUFFIX;
         });
     if (isSharedApp || hasSharedHsp) {
-        if (!CheckSharedAppIsValid(hapVerifyInfos)) {
+        if (!CheckSharedAppIsValid(normalHapVerifyInfos)) {
             LOGE("%s", PackingToolErrMsg::PARSE_JSON_FAILED.toStringWithArgs("CheckSharedAppIsValid failed!").c_str());
             size_t inputIndex = 0;
             for (const auto& file : fileList) {
@@ -329,17 +356,13 @@ bool ModuleJsonUtils::CheckHapsIsValid(const std::list<std::string>& fileList, c
             return false;
         }
         return true;
-    } else {
-        for (auto& hapVerifyInfo : hapVerifyInfos) {
-            if (hapVerifyInfo.GetBundleType().compare(TYPE_SHARED) == 0) {
-                LOGE("%s", PackingToolErrMsg::PARSE_JSON_FAILED.toStringWithArgs(
-                    std::string("bundle type cannot be ") + TYPE_SHARED + " when app is not shared").c_str());
-                return false;
-            }
-        }
     }
-    setAtomicServiceFileSizeLimit(hapVerifyInfos);
-    if (!HapVerifyUtils::CheckHapIsValid(hapVerifyInfos)) {
+    if (!CheckSharedBundleTypeIsValid(normalHapVerifyInfos)) {
+        return false;
+    }
+    // The size limits are filled in place, so this call needs the underlying owner of the read-only alias above.
+    setAtomicServiceFileSizeLimit(groups.normalHapVerifyInfos);
+    if (!HapVerifyUtils::CheckHapIsValid(normalHapVerifyInfos)) {
         LOGE("%s", PackingToolErrMsg::PARSE_JSON_FAILED.toStringWithArgs("CheckHapIsValid failed!").c_str());
         return false;
     }

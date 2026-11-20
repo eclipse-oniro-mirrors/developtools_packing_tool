@@ -435,6 +435,42 @@ const ErrorMsg PackingToolErrMsg::CHECK_KERNEL_PERMISSION_COMPRESSION_FAILED =
     BuildPackingToolError("12", "055",
         "Check kernel permission compression failed.", "%s");
 
+const ErrorMsg PackingToolErrMsg::ALTERNATE_MODULE_BUNDLE_TYPE_INVALID =
+    BuildPackingToolError("12", "056",
+        "alternate module bundleType invalid.", "%s",
+        {
+            "Ensure the module marked with alternateModule has the bundleType 'shared'."
+        });
+
+const ErrorMsg PackingToolErrMsg::ALTERNATE_MODULE_NORMAL_MODULE_NOT_FOUND =
+    BuildPackingToolError("12", "057",
+        "alternate module has no available same-name normal module.", "%s",
+        {
+            "Pack the alternate module with a same-name normal hsp, and keep at most one "
+            "alternate hsp for each normal hsp."
+        });
+
+const ErrorMsg PackingToolErrMsg::ALTERNATE_MODULE_MODULE_JSON_MISMATCH =
+    BuildPackingToolError("12", "058",
+        "alternate module module.json mismatch.", "%s",
+        {
+            "Keep the alternate module module.json the same as one of the same-name normal hsp except alternateModule."
+        });
+
+const ErrorMsg PackingToolErrMsg::ALTERNATE_MODULE_SIZE_EXCEEDED =
+    BuildPackingToolError("12", "059",
+        "alternate module hsp size exceeds limit.", "%s",
+        {
+            "Reduce the alternate module hsp file size to 819200 bytes or less."
+        });
+
+const ErrorMsg PackingToolErrMsg::ALTERNATE_MODULE_CONTAINS_LIBS =
+    BuildPackingToolError("12", "060",
+        "alternate module contains libs directory.", "%s",
+        {
+            "Remove the libs directory from the alternate module hsp."
+        });
+
 // ==================== Module JSON check errors (Type: 13) ====================
 const ErrorMsg PackingToolErrMsg::PARSE_JSON_OBJECT_EXCEPTION =
     BuildPackingToolError("13", "001",

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -19,13 +19,16 @@
 #include <iterator>
 #include <optional>
 #include <set>
+#include <utility>
 #include <vector>
 
 #include "constants.h"
 #include "error/packing_tool_err_msg.h"
 #include "hap_verify_info.h"
 #include "log.h"
+#include "pt_json.h"
 #include "utils.h"
+#include "zip_utils.h"
 
 using packing_tool::error::PackingToolErrMsg;
 
@@ -1686,6 +1689,168 @@ bool HapVerifyUtils::CheckSharedAppVariantsIsValid(const std::list<HapVerifyInfo
                     "Correct this HSP according to the preceding single-package diagnostic."}).c_str());
             return false;
         }
+    }
+    return true;
+}
+
+namespace {
+const char* const ALTERNATE_MODULE_KEY = "alternateModule";
+const int64_t ALTERNATE_MODULE_MAX_FILE_SIZE = 800LL * 1024;
+const std::string LIBS_DIR = "libs";
+bool CheckAlternateModuleFileSize(const std::string& artifactPath, const HapVerifyInfo& hapVerifyInfo)
+{
+    int64_t fileLength = Utils::GetFileLength(artifactPath);
+    if (fileLength <= 0) {
+        LOGE("%s", PackingToolErrMsg::ALTERNATE_MODULE_SIZE_EXCEEDED.toStringWithArgs(
+            "Failed to get the alternate module hsp size, path='" + artifactPath + "'.").c_str());
+        return false;
+    }
+    if (fileLength > ALTERNATE_MODULE_MAX_FILE_SIZE) {
+        LOGE("%s", PackingToolErrMsg::ALTERNATE_MODULE_SIZE_EXCEEDED.toStringWithArgs(
+            "The alternate module '" + artifactPath + "' with moduleName '" + hapVerifyInfo.GetModuleName() +
+            "' is " + std::to_string(fileLength) + " bytes, exceeding the limit of " +
+            std::to_string(ALTERNATE_MODULE_MAX_FILE_SIZE) + " bytes.").c_str());
+        return false;
+    }
+    return true;
+}
+
+bool CheckAlternateModuleHasNoLibs(const std::string& artifactPath, const HapVerifyInfo& hapVerifyInfo)
+{
+    if (!ZipUtils::IsDirectoryExistsInZip(artifactPath, LIBS_DIR)) {
+        return true;
+    }
+    LOGE("%s", PackingToolErrMsg::ALTERNATE_MODULE_CONTAINS_LIBS.toStringWithArgs(
+        "The alternate module '" + artifactPath + "' with moduleName '" + hapVerifyInfo.GetModuleName() +
+        "' contains a root libs directory.").c_str());
+    return false;
+}
+
+bool CheckAlternateModuleBundleType(const std::string& alternateModulePath, const HapVerifyInfo& alternateModuleInfo)
+{
+    const std::string& moduleName = alternateModuleInfo.GetModuleName();
+    const std::string& bundleType = alternateModuleInfo.GetBundleType();
+    if (bundleType == TYPE_SHARED) {
+        return true;
+    }
+    LOGE("%s", PackingToolErrMsg::ALTERNATE_MODULE_BUNDLE_TYPE_INVALID.toStringWithArgs(
+        "The alternate module '" + alternateModulePath + "' with moduleName '" + moduleName +
+        "' has bundleType '" + bundleType +
+        "', but only bundleType 'shared' supports alternateModule.").c_str());
+    return false;
+}
+
+struct SameNameModuleResult {
+    std::list<std::string> paths;
+    bool hasSameModuleJson;
+};
+
+SameNameModuleResult FindSameNameNormalModules(const std::string& moduleName,
+    const std::string& alternateProfile, HapVerifyInfoGroups& groups)
+{
+    SameNameModuleResult result;
+    result.hasSameModuleJson = false;
+    auto normalInfoIt = groups.normalHapVerifyInfos.begin();
+    auto normalPathIt = groups.normalHapVerifyPaths.begin();
+    for (; normalInfoIt != groups.normalHapVerifyInfos.end(); ++normalInfoIt, ++normalPathIt) {
+        if (!moduleName.empty() && moduleName == normalInfoIt->GetModuleName()) {
+            result.paths.push_back(*normalPathIt);
+            if (HapVerifyUtils::IsSameModuleJsonExcludingAlternateModule(alternateProfile,
+                normalInfoIt->GetProfileStr())) {
+                result.hasSameModuleJson = true;
+                groups.normalHapVerifyInfos.erase(normalInfoIt);
+                groups.normalHapVerifyPaths.erase(normalPathIt);
+                break;
+            }
+        }
+    }
+    return result;
+}
+}  // namespace
+
+bool HapVerifyUtils::IsSameModuleJsonExcludingAlternateModule(const std::string& firstJson,
+    const std::string& secondJson)
+{
+    std::unique_ptr<PtJson> firstRoot = PtJson::Parse(firstJson);
+    std::unique_ptr<PtJson> secondRoot = PtJson::Parse(secondJson);
+    if (firstRoot == nullptr || secondRoot == nullptr) {
+        return false;
+    }
+    std::unique_ptr<PtJson> firstModule;
+    std::unique_ptr<PtJson> secondModule;
+    if (firstRoot->GetObject("module", &firstModule) != Result::SUCCESS ||
+        secondRoot->GetObject("module", &secondModule) != Result::SUCCESS) {
+        return false;
+    }
+    firstModule->Remove(ALTERNATE_MODULE_KEY);
+    secondModule->Remove(ALTERNATE_MODULE_KEY);
+    return cJSON_Compare(firstRoot->GetJson(), secondRoot->GetJson(), true);
+}
+
+HapVerifyInfoGroups HapVerifyUtils::SplitHapVerifyInfos(const std::list<std::string>& filePaths,
+    const std::list<HapVerifyInfo>& hapVerifyInfos)
+{
+    HapVerifyInfoGroups groups;
+    auto pathIt = filePaths.begin();
+    for (const auto& info : hapVerifyInfos) {
+        if (info.IsAlternateModule()) {
+            groups.alternateHspVerifyInfos.push_back(info);
+            groups.alternateHspPaths.push_back(*pathIt);
+        } else {
+            groups.normalHapVerifyInfos.push_back(info);
+            groups.normalHapVerifyPaths.push_back(*pathIt);
+        }
+        ++pathIt;
+    }
+    return groups;
+}
+
+bool HapVerifyUtils::CheckAlternateModuleIsValid(const HapVerifyInfoGroups& groups)
+{
+    HapVerifyInfoGroups availableGroups = groups;
+    auto pathIt = groups.alternateHspPaths.begin();
+    for (const auto& info : groups.alternateHspVerifyInfos) {
+        const std::string& moduleName = info.GetModuleName();
+        LOGW("alternate module detected, moduleName: %s", moduleName.c_str());
+        const std::string& alternateModulePath = *pathIt;
+        if (!CheckAlternateModuleBundleType(alternateModulePath, info)) {
+            return false;
+        }
+        SameNameModuleResult sameName = FindSameNameNormalModules(moduleName, info.GetProfileStr(), availableGroups);
+        if (sameName.paths.empty()) {
+            LOGE("%s", PackingToolErrMsg::ALTERNATE_MODULE_NORMAL_MODULE_NOT_FOUND.toStringWithArgs(
+                "The alternate module '" + alternateModulePath + "' with moduleName '" + moduleName +
+                "' has no available same-name normal hsp in the packing input.").c_str());
+            return false;
+        }
+        if (!sameName.hasSameModuleJson) {
+            std::string sameNamePathStr;
+            for (const auto& path : sameName.paths) {
+                sameNamePathStr += (sameNamePathStr.empty() ? "" : ", ") + path;
+            }
+            LOGE("%s", PackingToolErrMsg::ALTERNATE_MODULE_MODULE_JSON_MISMATCH.toStringWithArgs(
+                "The alternate module '" + alternateModulePath + "' with moduleName '" + moduleName +
+                "' is not the same as any same-name normal hsp " + sameNamePathStr +
+                " except alternateModule.").c_str());
+            return false;
+        }
+        ++pathIt;
+    }
+    return true;
+}
+
+bool HapVerifyUtils::CheckAlternateModuleConstraints(const std::list<std::string>& alternateHspPaths,
+    const std::list<HapVerifyInfo>& alternateHspVerifyInfos)
+{
+    auto pathIt = alternateHspPaths.begin();
+    for (const auto& info : alternateHspVerifyInfos) {
+        if (!CheckAlternateModuleFileSize(*pathIt, info)) {
+            return false;
+        }
+        if (!CheckAlternateModuleHasNoLibs(*pathIt, info)) {
+            return false;
+        }
+        ++pathIt;
     }
     return true;
 }

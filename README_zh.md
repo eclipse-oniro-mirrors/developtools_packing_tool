@@ -563,6 +563,7 @@ java -jar app_unpacking_tool.jar --mode <option> --hsp-path <options> --out-path
 | originalSize         | long                                           | 标识Hap包的原始大小，单位字节                        | NA                                         |
 | requiredDeviceFeatures  | Map\<String, List\<String>>                 | 标识设备需要支持的特性                         | Stage模型新增                                  |
 | anyOfDeviceFeatures     | Map\<String, List\<String>>                 | 标识设备需要支持的特性，满足任一设备特性即可           | Stage模型新增                                  |
+| alternateModule         | boolean                                        | 标识该模块是否为逃生包                          | 对应Stage模型中module结构体中的alternateModule字段 |
 
 ### 4.6 AbilityInfo结构体信息
 

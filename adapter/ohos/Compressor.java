@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -3560,6 +3560,40 @@ public class Compressor {
      * @throws BundleException FileNotFoundException|IOException.
      */
     private boolean checkHapIsValid(List<String> fileLists, boolean isSharedApp) throws BundleException {
+        List<HapVerifyInfo> hapVerifyInfos = parseHapVerifyInfos(fileLists);
+        HapVerify.HapVerifyInfoGroups groups = HapVerify.HapVerifyInfoGroups.create(fileLists, hapVerifyInfos);
+        if (!groups.alternateHspVerifyInfos.isEmpty()) {
+            if (!HapVerify.checkAlternateModuleIsValid(groups)) {
+                return false;
+            }
+            if (!HapVerify.checkAlternateModuleConstraints(
+                    groups.alternateHspPaths, groups.alternateHspVerifyInfos)) {
+                return false;
+            }
+        }
+        List<HapVerifyInfo> normalHapVerifyInfos = groups.normalHapVerifyInfos;
+        boolean hasSharedHsp = normalHapVerifyInfos.stream().anyMatch(info ->
+                TYPE_SHARED.equals(info.getBundleType()) && HSP_SUFFIX.equals(info.getFileType()));
+        if (isSharedApp || hasSharedHsp) {
+            boolean valid = checkSharedAppIsValid(normalHapVerifyInfos);
+            if (!valid) {
+                LOG.error(PackingToolErrMsg.CHECK_SHARED_APP_INVALID.toString(
+                        "Shared HSP validation failed. Input order: " + fileLists,
+                        "Correct the inputs identified by the preceding validation diagnostic."));
+            }
+            return valid;
+        }
+        if (!checkSharedBundleTypeIsValid(normalHapVerifyInfos)) {
+            return false;
+        }
+        setAtomicServiceFileSizeLimit(normalHapVerifyInfos);
+        if (!HapVerify.checkHapIsValid(normalHapVerifyInfos)) {
+            return false;
+        }
+        return true;
+    }
+
+    private List<HapVerifyInfo> parseHapVerifyInfos(List<String> fileLists) throws BundleException {
         List<HapVerifyInfo> hapVerifyInfos = new ArrayList<>();
         for (String hapPath : fileLists) {
             if (hapPath.isEmpty()) {
@@ -3582,36 +3616,22 @@ public class Compressor {
             } else {
                 hapVerifyInfos.add(parseFAHapVerifyInfo(hapPath));
             }
-
             if (!hapVerifyInfos.isEmpty()) {
                 hapVerifyInfoMap.put(getFileNameByPath(hapPath), hapVerifyInfos.get(hapVerifyInfos.size() - 1));
             }
         }
+        return hapVerifyInfos;
+    }
 
-        boolean hasSharedHsp = hapVerifyInfos.stream().anyMatch(info ->
-                TYPE_SHARED.equals(info.getBundleType()) && HSP_SUFFIX.equals(info.getFileType()));
-        if (isSharedApp || hasSharedHsp) {
-            boolean valid = checkSharedAppIsValid(hapVerifyInfos);
-            if (!valid) {
-                LOG.error(PackingToolErrMsg.CHECK_SHARED_APP_INVALID.toString(
-                        "Shared HSP validation failed. Input order: " + fileLists,
-                        "Correct the inputs identified by the preceding validation diagnostic."));
+    private boolean checkSharedBundleTypeIsValid(List<HapVerifyInfo> hapVerifyInfos) {
+        for (HapVerifyInfo hapVerifyInfo : hapVerifyInfos) {
+            String bundleType = hapVerifyInfo.getBundleType();
+            if (TYPE_SHARED.equals(bundleType)) {
+                String cause = "Only one item can be entered in the --hsp-path when bundleType is shared.";
+                String solution = "Ensure that only one item entered in the --hsp-path when bundleType is shared.";
+                LOG.error(PackingToolErrMsg.CHECK_BUNDLETYPE_INVALID.toString(cause, solution));
+                return false;
             }
-            return valid;
-        } else {
-            for (HapVerifyInfo hapVerifyInfo : hapVerifyInfos) {
-                String bundleType = hapVerifyInfo.getBundleType();
-                if (TYPE_SHARED.equals(bundleType)) {
-                    String cause = "Only one item can be entered in the --hsp-path when bundleType is shared.";
-                    String solution = "Ensure that only one item entered in the --hsp-path when bundleType is shared.";
-                    LOG.error(PackingToolErrMsg.CHECK_BUNDLETYPE_INVALID.toString(cause, solution));
-                    return false;
-                }
-            }
-        }
-        setAtomicServiceFileSizeLimit(hapVerifyInfos);
-        if (!HapVerify.checkHapIsValid(hapVerifyInfos)) {
-            return false;
         }
         return true;
     }

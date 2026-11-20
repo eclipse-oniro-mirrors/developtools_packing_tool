@@ -158,6 +158,7 @@ public class JsonUtil {
     private static final String TWO_IN_ONE = "2in1";
     private static final String DELIVERY_WITH_INSTALL = "deliveryWithInstall";
     private static final String INSTALLATION_FREE = "installationFree";
+    private static final String ALTERNATE_MODULE = "alternateModule";
     private static final String VIRTUAL_MACHINE = "virtualMachine";
     private static final String DEFAULT = "default";
     private static final String HML = "hml";
@@ -1210,6 +1211,7 @@ public class JsonUtil {
         }
         moduleInfo.deliveryWithInstall = getJsonBooleanValue(moduleJson, DELIVERY_WITH_INSTALL, true);
         parseInstallationFree(moduleJson, moduleInfo);
+        moduleInfo.alternateModule = getJsonBooleanValue(moduleJson, ALTERNATE_MODULE, false);
         moduleInfo.virtualMachine = getJsonString(moduleJson, VIRTUAL_MACHINE, DEFAULT);
         moduleInfo.uiSyntax = getJsonString(moduleJson, UI_SYNTAX, HML);
         moduleInfo.pages = parseModulePages(moduleJson, profileJsons);

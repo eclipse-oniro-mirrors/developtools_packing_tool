@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -853,6 +853,63 @@ public class PackingToolErrMsg {
             .setErrCode("055")
             .setDescription("Check kernel permission compression failed.")
             .setCause("%s")
+            .build();
+
+    /**
+     * ALTERNATE_MODULE_BUNDLE_TYPE_INVALID
+     */
+    public static final ErrorMsg ALTERNATE_MODULE_BUNDLE_TYPE_INVALID = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("12")
+            .setErrCode("056")
+            .setDescription("alternate module bundleType invalid.")
+            .setCause("%s")
+            .addSolution("Ensure the module marked with alternateModule has the bundleType 'shared'.")
+            .build();
+
+    /**
+     * ALTERNATE_MODULE_NORMAL_MODULE_NOT_FOUND
+     */
+    public static final ErrorMsg ALTERNATE_MODULE_NORMAL_MODULE_NOT_FOUND = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("12")
+            .setErrCode("057")
+            .setDescription("alternate module has no available same-name normal module.")
+            .setCause("%s")
+            .addSolution("Pack the alternate module with a same-name normal hsp, and keep at most one "
+                    + "alternate hsp for each normal hsp.")
+            .build();
+
+    /**
+     * ALTERNATE_MODULE_MODULE_JSON_MISMATCH
+     */
+    public static final ErrorMsg ALTERNATE_MODULE_MODULE_JSON_MISMATCH = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("12")
+            .setErrCode("058")
+            .setDescription("alternate module module.json mismatch.")
+            .setCause("%s")
+            .addSolution("Keep the alternate module module.json the same as one of the same-name normal hsp " +
+                    "except alternateModule.")
+            .build();
+
+    /**
+     * ALTERNATE_MODULE_SIZE_EXCEEDED
+     */
+    public static final ErrorMsg ALTERNATE_MODULE_SIZE_EXCEEDED = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("12")
+            .setErrCode("059")
+            .setDescription("alternate module hsp size exceeds limit.")
+            .setCause("%s")
+            .addSolution("Reduce the alternate module hsp file size to 819200 bytes or less.")
+            .build();
+
+    /**
+     * ALTERNATE_MODULE_CONTAINS_LIBS
+     */
+    public static final ErrorMsg ALTERNATE_MODULE_CONTAINS_LIBS = ErrorMsg.getPackingToolErrBuilder()
+            .setTypeCode("12")
+            .setErrCode("060")
+            .setDescription("alternate module contains libs directory.")
+            .setCause("%s")
+            .addSolution("Remove the libs directory from the alternate module hsp.")
             .build();
 
     // module json check error

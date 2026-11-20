@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -142,6 +142,16 @@ const bool& HapVerifyInfo::IsInstallationFree() const
 void HapVerifyInfo::SetInstallationFree(const bool& isInstallationFree)
 {
     isInstallationFree_ = isInstallationFree;
+}
+
+const bool& HapVerifyInfo::IsAlternateModule() const
+{
+    return alternateModule_;
+}
+
+void HapVerifyInfo::SetAlternateModule(const bool& alternateModule)
+{
+    alternateModule_ = alternateModule;
 }
 
 const std::list<std::string>& HapVerifyInfo::GetDependencies() const
