@@ -210,7 +210,8 @@
           },
           "exported": {
             "description": "Specifies whether the insightIntent can be called by third-party applications.",
-            "type": "boolean"
+            "type": "boolean",
+            "default": false
           }
         }
       }
