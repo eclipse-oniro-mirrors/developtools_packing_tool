@@ -37,7 +37,8 @@
             "inputParams",
             "outputParams",
             "entities",
-            "permissions"
+            "permissions",
+            "exported"
           ]
         },
         "required": [
@@ -206,6 +207,11 @@
               "type": "string",
               "maxLength": 255
             }
+          },
+          "exported": {
+            "description": "Specifies whether the insightIntent can be called by third-party applications.",
+            "type": "boolean",
+            "default": false
           }
         }
       }
