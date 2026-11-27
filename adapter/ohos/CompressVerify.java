@@ -1681,7 +1681,8 @@ public class CompressVerify {
         try {
             Optional<String> optional = FileUtils.getFileContent(utility.getJsonPath());
             if(optional.isPresent()) {
-                return ModuleJsonUtil.parseModuleType(optional.get()).equals(BUNDLE_TYPE_SHARE) && !ModuleJsonUtil.parseAbilityNames(optional.get()).isEmpty();
+                return ModuleJsonUtil.parseModuleType(optional.get()).equals(BUNDLE_TYPE_SHARE) &&
+                    !ModuleJsonUtil.parseAbilityNames(optional.get()).isEmpty();
             } else {
                 String errMsg = "Parse --json-path content failed.";
                 LOG.error(PackingToolErrMsg.HSP_HAS_ABILITIES_FAILED.toString(errMsg));

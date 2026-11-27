@@ -17,6 +17,11 @@ package ohos;
 
 import java.util.Objects;
 
+/**
+ * MultiAppMode info
+ *
+ * @since 2024-05-11
+ */
 public class MultiAppMode {
     private String multiAppModeType = "";
     private Integer maxCount = 0;
@@ -39,11 +44,17 @@ public class MultiAppMode {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        MultiAppMode that = (MultiAppMode) o;
-        return Objects.equals(multiAppModeType, that.multiAppModeType) && Objects.equals(maxCount, that.maxCount);
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (o instanceof MultiAppMode) {
+            MultiAppMode that = (MultiAppMode) o;
+            return Objects.equals(multiAppModeType, that.multiAppModeType) && Objects.equals(maxCount, that.maxCount);
+        }
+        return false;
     }
 
     @Override

@@ -42,6 +42,8 @@ public class SkillInfo {
 
     /**
      * get domainVerify
+     *
+     * @return the value of domainVerify
      */
     public Boolean getDomainVerify() {
         return domainVerify;
@@ -49,6 +51,8 @@ public class SkillInfo {
 
     /**
      * set domainVerify
+     *
+     * @param domainVerify the set value
      */
     public void setDomainVerify(Boolean domainVerify) {
         this.domainVerify = domainVerify;
