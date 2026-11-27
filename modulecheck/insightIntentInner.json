@@ -38,7 +38,8 @@
             "outputParams",
             "entities",
             "permissions",
-            "exported"
+            "exported",
+            "cancellable"
           ]
         },
         "required": [
@@ -210,6 +211,11 @@
           },
           "exported": {
             "description": "Specifies whether the insightIntent can be called by third-party applications.",
+            "type": "boolean",
+            "default": false
+          },
+          "cancellable": {
+            "description": "Whether the intent declares the cancellable capability. Only intents that declare this capability are brought into the cancellation chain, and their execution can be cancelled by the caller or by the system. The default value is false.",
             "type": "boolean",
             "default": false
           }
