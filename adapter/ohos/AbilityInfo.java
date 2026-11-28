@@ -227,34 +227,58 @@ public class AbilityInfo {
         return "";
     }
 
+    /**
+     * set the descriptions of ability.
+     */
     public void setDescriptions(HashMap<String, String> descriptions) {
         this.descriptions = descriptions;
     }
 
+    /**
+     * set the labels of ability.
+     */
     public void setLabels(HashMap<String, String> labels) {
         this.labels = labels;
     }
 
+    /**
+     * get the labels of ability.
+     */
     public HashMap<String, String> getLabels() {
         return labels;
     }
 
+    /**
+     * get the descriptions of ability.
+     */
     public HashMap<String, String> getDescriptions() {
         return descriptions;
     }
 
+    /**
+     * get the icon id of ability.
+     */
     public int getIconId() {
         return iconId;
     }
 
+    /**
+     * set the icon id of ability.
+     */
     public void setIconId(int iconId) {
         this.iconId = iconId;
     }
 
+    /**
+     * get the label id of ability.
+     */
     public int getLabelId() {
         return labelId;
     }
 
+    /**
+     * set the label id of ability.
+     */
     public void setLabelId(int labelId) {
         this.labelId = labelId;
     }

@@ -151,6 +151,10 @@ public class CommandParser {
         initCommandFuncs();
     }
 
+    /**
+     * init the command functions map, which binds each command option with
+     * the function of setting the option value to the utility.
+     */
     private static void initCommandFuncs() {
         commandFuncs.put(CMD_CONTENTS, entry -> {
             entry.getKey().setInstallerContents(entry.getValue());

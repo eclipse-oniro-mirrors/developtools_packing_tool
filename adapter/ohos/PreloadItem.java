@@ -25,10 +25,16 @@ public class PreloadItem {
      */
     private String moduleName;
 
+    /**
+     * get the module name of preload item.
+     */
     public String getModuleName() {
         return moduleName;
     }
 
+    /**
+     * set the module name of preload item.
+     */
     public void setModuleName(String moduleName) {
         this.moduleName = moduleName;
     }

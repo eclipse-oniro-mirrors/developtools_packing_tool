@@ -91,38 +91,65 @@ public class UncompressResult {
         }
     }
 
+    /**
+     * get the result of unpack.
+     */
     public boolean getResult() {
         return result;
     }
 
+    /**
+     * get the message of unpack.
+     */
     public String getMessage() {
         return message;
     }
 
+    /**
+     * get the pack infos of unpack.
+     */
     public List<PackInfo> getPackInfos() {
         return packInfos;
     }
 
+    /**
+     * get the profile infos of unpack.
+     */
     public List<ProfileInfo> getProfileInfos() {
         return profileInfos;
     }
 
+    /**
+     * get the pack info string of unpack.
+     */
     public String getPackInfoStr() {
         return packInfoStr;
     }
 
+    /**
+     * get the profile info strings of unpack.
+     */
     public List<String> getProfileInfosStr() {
         return profileInfosStr;
     }
 
+    /**
+     * get the label of unpack.
+     */
     public String getLabel() {
         return label;
     }
 
+    /**
+     * get the icon of unpack.
+     */
     public String getIcon() {
         return icon;
     }
 
+    /**
+     * get the package size of unpack.
+     */
     public long getPackageSize() {
         return packageSize;
     }

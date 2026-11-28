@@ -46,10 +46,16 @@ public class Shortcut {
 
     private HashMap<String, String> labels = new HashMap<>();
 
+    /**
+     * get the labels of app shortcut.
+     */
     public HashMap<String, String> getLabels() {
         return labels;
     }
 
+    /**
+     * set the labels of app shortcut.
+     */
     public void setLabels(HashMap<String, String> labels) {
         this.labels = labels;
     }

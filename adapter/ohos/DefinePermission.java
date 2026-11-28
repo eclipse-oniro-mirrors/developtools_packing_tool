@@ -61,18 +61,30 @@ public class DefinePermission {
 
     private HashMap<String, String> labels = new HashMap<>();
 
+    /**
+     * get the descriptions of DefinePermission.
+     */
     public HashMap<String, String> getDescriptions() {
         return descriptions;
     }
 
+    /**
+     * set the descriptions of DefinePermission.
+     */
     public void setDescriptions(HashMap<String, String> descriptions) {
         this.descriptions = descriptions;
     }
 
+    /**
+     * get the labels of DefinePermission.
+     */
     public HashMap<String, String> getLabels() {
         return labels;
     }
 
+    /**
+     * set the labels of DefinePermission.
+     */
     public void setLabels(HashMap<String, String> labels) {
         this.labels = labels;
     }

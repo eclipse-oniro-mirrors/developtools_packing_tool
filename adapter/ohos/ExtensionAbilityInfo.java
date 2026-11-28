@@ -92,18 +92,30 @@ public class ExtensionAbilityInfo {
      */
     private HashMap<String, String> labels = new HashMap<>();
 
+    /**
+     * get the labels of extension ability.
+     */
     public HashMap<String, String> getLabels() {
         return labels;
     }
 
+    /**
+     * get the descriptions of extension ability.
+     */
     public HashMap<String, String> getDescriptions() {
         return descriptions;
     }
 
+    /**
+     * set the descriptions of extension ability.
+     */
     public void setDescriptions(HashMap<String, String> descriptions) {
         this.descriptions = descriptions;
     }
 
+    /**
+     * set the labels of extension ability.
+     */
     public void setLabels(HashMap<String, String> labels) {
         this.labels = labels;
     }

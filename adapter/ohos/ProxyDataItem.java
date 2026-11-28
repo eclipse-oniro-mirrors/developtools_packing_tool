@@ -21,10 +21,16 @@ package ohos;
 public class ProxyDataItem {
     private String uri = null;
 
+    /**
+     * get the uri of proxy data item.
+     */
     public String getUri() {
         return this.uri;
     }
 
+    /**
+     * set the uri of proxy data item.
+     */
     public void setUri(String uri) {
         this.uri = uri;
     }

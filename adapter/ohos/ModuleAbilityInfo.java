@@ -109,34 +109,58 @@ class ModuleAbilityInfo {
      */
     private int labelId = 0;
 
+    /**
+     * set the labels of module ability.
+     */
     public void setLabels(HashMap<String, String> labels) {
         this.labels = labels;
     }
 
+    /**
+     * set the descriptions of module ability.
+     */
     public void setDescriptions(HashMap<String, String> descriptions) {
         this.descriptions = descriptions;
     }
 
+    /**
+     * get the descriptions of module ability.
+     */
     public HashMap<String, String> getDescriptions() {
         return descriptions;
     }
 
+    /**
+     * get the labels of module ability.
+     */
     public HashMap<String, String> getLabels() {
         return labels;
     }
 
+    /**
+     * get the icon id of module ability.
+     */
     public int getIconId() {
         return iconId;
     }
 
+    /**
+     * set the icon id of module ability.
+     */
     public void setIconId(int iconId) {
         this.iconId = iconId;
     }
 
+    /**
+     * get the label id of module ability.
+     */
     public int getLabelId() {
         return labelId;
     }
 
+    /**
+     * set the label id of module ability.
+     */
     public void setLabelId(int labelId) {
         this.labelId = labelId;
     }

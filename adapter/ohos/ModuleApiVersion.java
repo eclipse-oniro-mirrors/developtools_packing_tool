@@ -34,26 +34,44 @@ class ModuleApiVersion {
      */
     private String releaseType = "";
 
+    /**
+     * get the release type of api version.
+     */
     public String getReleaseType() {
         return releaseType;
     }
 
+    /**
+     * set the release type of api version.
+     */
     public void setReleaseType(String releaseType) {
         this.releaseType = releaseType;
     }
 
+    /**
+     * get the compatible api version.
+     */
     public int getCompatibleApiVersion() {
         return compatibleApiVersion;
     }
 
+    /**
+     * set the compatible api version.
+     */
     public void setCompatibleApiVersion(int compatibleApiVersion) {
         this.compatibleApiVersion = compatibleApiVersion;
     }
 
+    /**
+     * get the target api version.
+     */
     public int getTargetApiVersion() {
         return targetApiVersion;
     }
 
+    /**
+     * set the target api version.
+     */
     public void setTargetApiVersion(int targetApiVersion) {
         this.targetApiVersion = targetApiVersion;
     }

@@ -26,22 +26,40 @@ public class MultiAppMode {
     private String multiAppModeType = "";
     private Integer maxCount = 0;
 
+    /**
+     * get the type of multi app mode.
+     */
     public String getMultiAppModeType() {
         return multiAppModeType;
     }
 
+    /**
+     * set the type of multi app mode.
+     */
     public void setMultiAppModeType(String multiAppModeType) {
         this.multiAppModeType = multiAppModeType;
     }
 
+    /**
+     * get the max count of multi app mode.
+     */
     public Integer getMaxCount() {
         return maxCount;
     }
 
+    /**
+     * set the max count of multi app mode.
+     */
     public void setMaxCount(Integer maxCount) {
         this.maxCount = maxCount;
     }
 
+    /**
+     * compare this multi app mode with the specified object.
+     *
+     * @param o the object to be compared
+     * @return true if the given object is a multi app mode with the same fields
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -57,6 +75,11 @@ public class MultiAppMode {
         return false;
     }
 
+    /**
+     * compute the hash code of the multi app mode.
+     *
+     * @return the hash code of the multi app mode
+     */
     @Override
     public int hashCode() {
         int result = Objects.hashCode(multiAppModeType);

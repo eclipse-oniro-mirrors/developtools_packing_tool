@@ -188,10 +188,16 @@ class ModuleInfo {
      */
     private Map<String, List<String>> anyOfDeviceFeatures = new HashMap<>();
 
+    /**
+     * Set value descriptions
+     */
     public void setDescriptions(HashMap<String, String> descriptions) {
         this.descriptions = descriptions;
     }
 
+    /**
+     * Get value descriptions
+     */
     public HashMap<String, String> getDescriptions() {
         return descriptions;
     }

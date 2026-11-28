@@ -42,10 +42,16 @@ public class ReqPermission {
      */
     private HashMap<String, String> reasons = new HashMap<>();
 
+    /**
+     * set the reasons of ReqPermission.
+     */
     public void setReasons(HashMap<String, String> reasons) {
         this.reasons = reasons;
     }
 
+    /**
+     * get the reasons of ReqPermission.
+     */
     public HashMap<String, String> getReasons() {
         return reasons;
     }

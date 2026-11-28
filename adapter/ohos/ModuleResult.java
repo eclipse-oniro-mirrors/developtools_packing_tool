@@ -52,34 +52,58 @@ class ModuleResult {
      */
     private String message = "Success";
 
+    /**
+     * get the result of ModuleJson.
+     */
     public boolean getResult() {
         return result;
     }
 
+    /**
+     * set the result of ModuleJson.
+     */
     public void setResult(boolean result) {
         this.result = result;
     }
 
+    /**
+     * get the message of ModuleJson.
+     */
     public String getMessage() {
         return message;
     }
 
+    /**
+     * set the message of ModuleJson.
+     */
     public void setMessage(String message) {
         this.message = message;
     }
 
+    /**
+     * get the icon of ModuleJson.
+     */
     public String getIcon() {
         return icon;
     }
 
+    /**
+     * set the icon of ModuleJson.
+     */
     public void setIcon(String iconPath) {
         icon = iconPath;
     }
 
+    /**
+     * get the label of ModuleJson.
+     */
     public String getLabel() {
         return label;
     }
 
+    /**
+     * set the label of ModuleJson.
+     */
     public void setLabel(String labelRes) {
         label = labelRes;
     }

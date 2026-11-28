@@ -105,6 +105,12 @@ class UncompressVerify {
         return verifyOutPath(utility, file);
     }
 
+    /**
+     * parse and check args if valid in hsp mode.
+     *
+     * @param utility common data
+     * @return isVerifyValidInHspMode if verify valid in hsp mode.
+     */
     private static boolean hspCommandVerify(Utility utility) {
         utility.setHspPath(utility.getFormattedPath(utility.getHspPath()));
         File file = new File(utility.getHspPath());

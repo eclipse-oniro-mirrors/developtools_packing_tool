@@ -133,6 +133,9 @@ public class AbilityFormInfo {
      */
     private HashMap<String, String> descriptions = new HashMap<>();
 
+    /**
+     * get the descriptions of ability form.
+     */
     public HashMap<String, String> getDescriptions() {
         return descriptions;
     }
@@ -149,6 +152,9 @@ public class AbilityFormInfo {
         return "";
     }
 
+    /**
+     * set the descriptions of ability form
+     */
     public void setDescriptions(HashMap<String, String> descriptions) {
         this.descriptions = descriptions;
     }

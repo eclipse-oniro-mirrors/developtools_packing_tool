@@ -32,6 +32,14 @@ import java.util.Map;
 import java.util.Set;
 
 class ModuleJsonUtil {
+    /**
+     * check that 'moduleType' and 'bundleType' are both 'skill' or both not.
+     *
+     * @param moduleName the name of the module
+     * @param moduleType the moduleType of the module
+     * @param bundleType the bundleType of the app
+     * @throws BundleException Throws this exception if the skill configuration is invalid.
+     */
     private static void checkSkillBundleTypePair(String moduleName, String moduleType, String bundleType)
             throws BundleException {
         boolean hasSkillModuleType = Constants.TYPE_SKILL.equals(moduleType);
@@ -48,6 +56,12 @@ class ModuleJsonUtil {
         throw new BundleException(errMsg);
     }
 
+    /**
+     * parse the json string to a JSONObject.
+     *
+     * @param jsonString the json string to be parsed
+     * @return the JSONObject, or null if the json string is empty
+     */
     private static JSONObject parseJsonObject(String jsonString) {
         if (jsonString == null || jsonString.isEmpty()) {
             return null;
@@ -60,6 +74,14 @@ class ModuleJsonUtil {
         }
     }
 
+    /**
+     * parse the json string to an object of the specified class.
+     *
+     * @param <T> the type of the parsed object
+     * @param jsonString the json string to be parsed
+     * @param clazz the class of the parsed object
+     * @return the object of the specified class, or null if the json string is empty
+     */
     private static <T> T parseJsonObject(String jsonString, Class<T> clazz) {
         if (jsonString == null || jsonString.isEmpty()) {
             return null;
@@ -72,6 +94,12 @@ class ModuleJsonUtil {
         }
     }
 
+    /**
+     * parse the json string to a string list.
+     *
+     * @param jsonString the json string to be parsed
+     * @return the string list, or an empty list if the json string is empty
+     */
     private static List<String> parseJsonArray(String jsonString) {
         if (jsonString == null || jsonString.isEmpty()) {
             return new ArrayList<>();
@@ -1090,6 +1118,13 @@ class ModuleJsonUtil {
         hapVerifyInfo.setCompileSdkVersion(getFACompileSdkVersion(hapVerifyInfo.getProfileStr()));
     }
 
+    /**
+     * parse the multiAppMode from the app object of json string.
+     *
+     * @param jsonString uncompress json object
+     * @return the multiAppMode of the app
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     private static MultiAppMode parseMultiAppMode(String jsonString) throws BundleException {
         MultiAppMode multiAppMode = new MultiAppMode();
         JSONObject appObj = getAppObj(jsonString);
@@ -1103,6 +1138,13 @@ class ModuleJsonUtil {
         return multiAppMode;
     }
 
+    /**
+     * parse the allowAutoControlIntent from the app object of json string.
+     *
+     * @param jsonString uncompress json object
+     * @return the allowAutoControlIntent of the app, false by default
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     private static boolean parseAllowAutoControlIntent(String jsonString) throws BundleException {
         JSONObject appObj = getAppObj(jsonString);
         if (!appObj.containsKey(ALLOW_AUTO_CONTROL_INTENT)) {
@@ -1422,6 +1464,14 @@ class ModuleJsonUtil {
         return EMPTY_STRING;
     }
 
+    /**
+     * parse the dependencies from the module object of json string.
+     *
+     * @param jsonString uncompress json object
+     * @param bundleName the bundleName used when the dependency has no bundleName
+     * @return the dependency item list of the module
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     static List<DependencyItem> parseDependencies(String jsonString, String bundleName) throws BundleException {
         JSONObject moduleObj = getModuleObj(jsonString);
 
@@ -1446,6 +1496,13 @@ class ModuleJsonUtil {
         return dependencyItemList;
     }
 
+    /**
+     * parse the installationFree from the module object of json string for stage module.
+     *
+     * @param jsonString uncompress json object
+     * @return the installationFree of the module, false by default
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     static boolean parseStageInstallation(String jsonString) throws BundleException {
         JSONObject moduleObj = getModuleObj(jsonString);
 
@@ -1455,6 +1512,13 @@ class ModuleJsonUtil {
         return false;
     }
 
+    /**
+     * parse the alternateModule from the module object of json string for stage module.
+     *
+     * @param jsonString uncompress json object
+     * @return the alternateModule of the module, false by default
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     static boolean parseStageAlternateModule(String jsonString) throws BundleException {
         JSONObject moduleObj = getModuleObj(jsonString);
         if (!moduleObj.containsKey(ALTERNATE_MODULE)) {
@@ -1492,6 +1556,14 @@ class ModuleJsonUtil {
         return firstRootObj.equals(secondRootObj);
     }
 
+    /**
+     * parse the bundleType for stage module, checked with the module type
+     * and the installationFree setting.
+     *
+     * @param jsonString uncompress json object
+     * @return the bundleType of the app
+     * @throws BundleException Throws this exception if the bundleType configuration is invalid.
+     */
     static String parseStageBundleType(String jsonString) throws BundleException {
         JSONObject moduleObj = getModuleObj(jsonString);
         String moduleName = parseStageModuleName(jsonString);
@@ -1568,6 +1640,13 @@ class ModuleJsonUtil {
         }
     }
 
+    /**
+     * parse the preloads of the atomicService from the module object of json string.
+     *
+     * @param jsonString uncompress json object
+     * @return the preload item list of the atomicService
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     static List<PreloadItem> parseAtomicServicePreloads(String jsonString) throws BundleException {
         List<PreloadItem> preloadItems = new ArrayList<>();
         JSONObject moduleObj = getModuleObj(jsonString);
@@ -1591,6 +1670,13 @@ class ModuleJsonUtil {
         return preloadItems;
     }
 
+    /**
+     * parse the uris of proxyData or proxyDatas from the module object of json string.
+     *
+     * @param jsonString uncompress json object
+     * @return the uri list of the proxyData
+     * @throws BundleException Throws this exception if the proxyData object has no uri.
+     */
     static List<String> parseProxyDataUri(String jsonString) throws BundleException {
         List<String> proxyDataUris = new ArrayList<>();
         JSONObject moduleObj = getModuleObj(jsonString);
@@ -1628,6 +1714,13 @@ class ModuleJsonUtil {
         return proxyDataUris;
     }
 
+    /**
+     * get the app object from the module.json or config.json json string.
+     *
+     * @param jsonString uncompress json object
+     * @return the app object of the json string
+     * @throws BundleException Throws this exception if the json has no app object.
+     */
     static JSONObject getAppObj(String jsonString) throws BundleException {
         JSONObject jsonObject;
         try {
@@ -1646,6 +1739,13 @@ class ModuleJsonUtil {
         return appObj;
     }
 
+    /**
+     * get the module object from the module.json or config.json json string.
+     *
+     * @param jsonString uncompress json object
+     * @return the module object of the json string
+     * @throws BundleException Throws this exception if the json has no module object.
+     */
     static JSONObject getModuleObj(String jsonString) throws BundleException {
         JSONObject jsonObj;
         try {
@@ -1668,6 +1768,13 @@ class ModuleJsonUtil {
         return moduleObj;
     }
 
+    /**
+     * parse the targetBundleName from the app object of json string.
+     *
+     * @param jsonString uncompress json object
+     * @return the targetBundleName of the app, empty string by default
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     static String parseTargetBundleName(String jsonString) throws BundleException {
         JSONObject appObject = getAppObj(jsonString);
         String targetBundleName = "";
@@ -1677,6 +1784,13 @@ class ModuleJsonUtil {
         return targetBundleName;
     }
 
+    /**
+     * parse the targetPriority from the app object of json string.
+     *
+     * @param jsonString uncompress json object
+     * @return the targetPriority of the app, zero by default
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     static int parseTargetPriority(String jsonString) throws BundleException {
         JSONObject appObject = getAppObj(jsonString);
         int targetPriority = 0;
@@ -1686,6 +1800,13 @@ class ModuleJsonUtil {
         return targetPriority;
     }
 
+    /**
+     * parse the targetModuleName from the module object of json string.
+     *
+     * @param jsonString uncompress json object
+     * @return the targetModuleName of the module, empty string by default
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     static String parseTargetModuleName(String jsonString) throws BundleException {
         JSONObject moduleObj = getModuleObj(jsonString);
         String targetModuleName = "";
@@ -1695,6 +1816,13 @@ class ModuleJsonUtil {
         return targetModuleName;
     }
 
+    /**
+     * parse the targetPriority of the target module from the module object of json string.
+     *
+     * @param jsonString uncompress json object
+     * @return the targetModulePriority of the module, zero by default
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     static int parseTargetModulePriority(String jsonString) throws BundleException {
         JSONObject moduleObj = getModuleObj(jsonString);
         int targetModulePriority = 0;
@@ -1704,6 +1832,13 @@ class ModuleJsonUtil {
         return targetModulePriority;
     }
 
+    /**
+     * parse the installationFree from the distro object of json string for fa module.
+     *
+     * @param jsonString uncompress json object
+     * @return the installationFree of the module, false by default
+     * @throws BundleException Throws this exception if the config.json has no distro object.
+     */
     static boolean parseFAInstallationFree(String jsonString) throws BundleException {
         JSONObject moduleObj = getModuleObj(jsonString);
         JSONObject distroObj = moduleObj.getJSONObject(DISTRO);
@@ -1718,6 +1853,13 @@ class ModuleJsonUtil {
         return false;
     }
 
+    /**
+     * parse the compressNativeLibs from the module object of json string for fa module.
+     *
+     * @param jsonString uncompress json object
+     * @return the compressNativeLibs of the module
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     static boolean parseFACompressNativeLibs(String jsonString) throws BundleException {
         JSONObject moduleObj = getModuleObj(jsonString);
         if (moduleObj.containsKey(COMPRESS_NATIVE_LIBS)) {
@@ -1726,6 +1868,13 @@ class ModuleJsonUtil {
         return DEFAULT_COMPRESS_NATIVE_LIBS;
     }
 
+    /**
+     * parse the extractNativeLibs from the module object of json string for fa module.
+     *
+     * @param jsonString uncompress json object
+     * @return the extractNativeLibs of the module
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     static boolean parseFAExtractNativeLibs(String jsonString) throws BundleException {
         JSONObject moduleObj = getModuleObj(jsonString);
         if (moduleObj.containsKey(EXTRACT_NATIVE_LIBS)) {
@@ -1734,6 +1883,13 @@ class ModuleJsonUtil {
         return DEFAULT_EXTRACT_NATIVE_LIBS;
     }
 
+    /**
+     * parse the compressNativeLibs from the module object of json string for stage module.
+     *
+     * @param jsonString uncompress json object
+     * @return the compressNativeLibs of the module
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     static boolean parseStageCompressNativeLibs(String jsonString) throws BundleException {
         JSONObject moduleObj = getModuleObj(jsonString);
         if (moduleObj.containsKey(COMPRESS_NATIVE_LIBS)) {
@@ -1742,6 +1898,13 @@ class ModuleJsonUtil {
         return DEFAULT_COMPRESS_NATIVE_LIBS;
     }
 
+    /**
+     * parse the extractNativeLibs from the module object of json string for stage module.
+     *
+     * @param jsonString uncompress json object
+     * @return the extractNativeLibs of the module
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     static boolean parseStageExtractNativeLibs(String jsonString) throws BundleException {
         JSONObject moduleObj = getModuleObj(jsonString);
         if (moduleObj.containsKey(EXTRACT_NATIVE_LIBS)) {
@@ -1750,6 +1913,13 @@ class ModuleJsonUtil {
         return DEFAULT_EXTRACT_NATIVE_LIBS;
     }
 
+    /**
+     * parse whether the module has executableBinaryPaths in json string.
+     *
+     * @param jsonString uncompress json object
+     * @return true if the module has executableBinaryPaths
+     * @throws BundleException Throws this exception if the json is not standard.
+     */
     static boolean parseHasExecutableBinaryPaths(String jsonString) throws BundleException {
         JSONObject moduleObj = getModuleObj(jsonString);
         if (!moduleObj.containsKey(EXECUTABLE_BINARY_PATHS)) {
@@ -2360,6 +2530,13 @@ class ModuleJsonUtil {
         return value;
     }
 
+    /**
+     * parse the keepDataOnUninstall from the app object of json string.
+     *
+     * @param jsonString uncompress json object
+     * @return the keepDataOnUninstall of the app, false by default
+     * @throws BundleException Throws this exception if keepDataOnUninstall is not a boolean.
+     */
     private static boolean parseKeepDataOnUninstall(String jsonString) throws BundleException {
         JSONObject appObj = getAppObj(jsonString);
         if (!appObj.containsKey(KEEP_DATA_ON_UNINSTALL)) {
@@ -2373,6 +2550,14 @@ class ModuleJsonUtil {
         return (Boolean) value;
     }
 
+    /**
+     * get the boolean value of the key from the json object.
+     *
+     * @param jsonObject the json object which contains the key
+     * @param key the key of the boolean value
+     * @param defaultValue the default value when the key does not exist
+     * @return the boolean value of the key, or the default value
+     */
     private static boolean getJsonBooleanValue(JSONObject jsonObject, String key, boolean defaultValue) {
         boolean value = defaultValue;
         if (jsonObject != null && jsonObject.containsKey(key)) {
@@ -2381,6 +2566,13 @@ class ModuleJsonUtil {
         return value;
     }
 
+    /**
+     * count the number of the target char in the string.
+     *
+     * @param str the string to be counted
+     * @param targetChar the target char
+     * @return the number of the target char in the string
+     */
     private static int getCount(String str, char targetChar) {
         int count = 0;
         for (int i = 0; i < str.length(); i++) {

@@ -46,42 +46,72 @@ class ModuleShortcut {
      */
     private List<Want> wants = new ArrayList<Want>();
 
+    /**
+     * get the shortcut id of module shortcut.
+     */
     public String getShortcutId() {
         return shortcutId;
     }
 
+    /**
+     * set the shortcut id of module shortcut.
+     */
     public void setShortcutId(String shortcutId) {
         this.shortcutId = shortcutId;
     }
 
+    /**
+     * get the label of module shortcut.
+     */
     public String getLabel() {
         return label;
     }
 
+    /**
+     * set the label of module shortcut.
+     */
     public void setLabel(String label) {
         this.label = label;
     }
 
+    /**
+     * get the labels of module shortcut.
+     */
     public HashMap<String, String> getLabels() {
         return labels;
     }
 
+    /**
+     * set the labels of module shortcut.
+     */
     public void setLabels(HashMap<String, String> labels) {
         this.labels = labels;
     }
 
+    /**
+     * get the icon of module shortcut.
+     */
     public String getIcon() {
         return icon;
     }
 
+    /**
+     * set the icon of module shortcut.
+     */
     public void setIcon(String icon) {
         this.icon = icon;
     }
 
+    /**
+     * get the wants of module shortcut.
+     */
     public List<Want> getWants() {
         return wants;
     }
 
+    /**
+     * set the wants of module shortcut.
+     */
     public void setWants(List<Want> wants) {
         this.wants = wants;
     }

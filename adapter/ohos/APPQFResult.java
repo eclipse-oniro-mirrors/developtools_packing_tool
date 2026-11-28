@@ -27,18 +27,30 @@ public class APPQFResult {
     private boolean success = false;
     private List<HQFInfo> hqfInfoList = null;
 
+    /**
+     * get whether parsing the appqf is success.
+     */
     public boolean isSuccess() {
         return success;
     }
 
+    /**
+     * set whether parsing the appqf is success.
+     */
     public void setSuccess(boolean success) {
         this.success = success;
     }
 
+    /**
+     * get the hqf info list parsed from the appqf.
+     */
     public List<HQFInfo> getHqfInfoList() {
         return hqfInfoList;
     }
 
+    /**
+     * set the hqf info list parsed from the appqf.
+     */
     public void setHqfInfoList(List<HQFInfo> hqfInfoList) {
         this.hqfInfoList = hqfInfoList;
     }

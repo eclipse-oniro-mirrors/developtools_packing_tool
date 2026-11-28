@@ -58,6 +58,11 @@ public class ErrorMsg {
         return new Builder(PACKING_TOOL_SUB_SYSTEM_CODE);
     }
 
+    /**
+     * error message string.
+     *
+     * @return the formatted error message with cause and solutions
+     */
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
