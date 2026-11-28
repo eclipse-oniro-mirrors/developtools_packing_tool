@@ -35,26 +35,44 @@ public class DependencyItem {
      */
     private int versionCode = 0;
 
+    /**
+     * get the bundle name of dependent module.
+     */
     public String getBundleName() {
         return bundleName;
     }
 
+    /**
+     * set the bundle name of dependent module.
+     */
     public void setBundleName(String bundleName) {
         this.bundleName = bundleName;
     }
 
+    /**
+     * get the module name of dependent module.
+     */
     public String getModuleName() {
         return moduleName;
     }
 
+    /**
+     * set the module name of dependent module.
+     */
     public void setModuleName(String moduleName) {
         this.moduleName = moduleName;
     }
 
+    /**
+     * get the version code of dependent module.
+     */
     public int getVersionCode() {
         return versionCode;
     }
 
+    /**
+     * set the version code of dependent module.
+     */
     public void setVersionCode(int versionCode) {
         this.versionCode = versionCode;
     }

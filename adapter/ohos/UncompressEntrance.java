@@ -107,6 +107,12 @@ public class UncompressEntrance {
             this.type = type;
         }
 
+        /**
+         * get the type of the parse app mode by the index.
+         *
+         * @param index the index of the parse app mode
+         * @return the type of the parse app mode, or empty string if the index is invalid
+         */
         public static String getType(int index) {
             for (UncompressEntrance.ParseAppMode resType : UncompressEntrance.ParseAppMode.values()) {
                 if (resType.getIndex() == index) {
@@ -116,9 +122,20 @@ public class UncompressEntrance {
             return "";
         }
 
+        /**
+         * get the index of the parse app mode.
+         *
+         * @return the index of the parse app mode
+         */
         public int getIndex() {
             return index;
         }
+
+        /**
+         * get the type of the parse app mode.
+         *
+         * @return the type of the parse app mode
+         */
         public String getType() {
             return type;
         }
@@ -234,6 +251,15 @@ public class UncompressEntrance {
         return unpackByCpuAbi(Utility.MODE_HSP, hspPath, outPath, cpuAbis);
     }
 
+    /**
+     * Unpack a hap or hsp module by CPU ABI.
+     *
+     * @param mode Indicates the unpack mode, hap or hsp.
+     * @param modulePath Indicates the module path.
+     * @param outPath Indicates the output path.
+     * @param cpuAbis Indicates target CPU ABIs, separated by comma. If empty, all ABIs are split.
+     * @return Return the unpack result.
+     */
     private static boolean unpackByCpuAbi(String mode, String modulePath, String outPath, String cpuAbis) {
         if (modulePath == null || modulePath.isEmpty()) {
             LOG.error("UncompressEntrance::unpackByCpuAbi modulePath is invalid!");

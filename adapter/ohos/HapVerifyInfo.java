@@ -460,6 +460,9 @@ class HapVerifyInfo {
         this.resourceMap = resourceMap;
     }
 
+    /**
+     * convert the dependency items of this bundle to dependency module names.
+     */
     private void convertToDependency() {
         for (DependencyItem item : dependencyItemList) {
             if (item.getBundleName() != null && item.getBundleName().equals(bundleName)) {
@@ -482,130 +485,226 @@ class HapVerifyInfo {
         this.alternateModule = alternateModule;
     }
 
+    /**
+     * get the bundle type for HapVerifyInfo.
+     */
     public String getBundleType() {
         return bundleType;
     }
 
+    /**
+     * set the bundle type for HapVerifyInfo.
+     */
     public void setBundleType(String bundleType) {
         this.bundleType = bundleType;
     }
 
+    /**
+     * get the atomic service type for HapVerifyInfo.
+     */
     public String getAtomicServiceType() {
         return atomicServiceType;
     }
 
+    /**
+     * set the atomic service type for HapVerifyInfo.
+     */
     public void setAtomicServiceType(String atomicServiceType) {
         this.atomicServiceType = atomicServiceType;
     }
 
+    /**
+     * get the preload items for HapVerifyInfo.
+     */
     public List<PreloadItem> getPreloadItems() {
         return preloadItems;
     }
 
+    /**
+     * set the preload items for HapVerifyInfo.
+     */
     public void setPreloadItems(List<PreloadItem> preloadItems) {
         this.preloadItems = preloadItems;
     }
 
+    /**
+     * get the target bundle name for HapVerifyInfo.
+     */
     public String getTargetBundleName() {
         return targetBundleName;
     }
 
+    /**
+     * set the target bundle name for HapVerifyInfo.
+     */
     public void setTargetBundleName(String targetBundleName) {
         this.targetBundleName = targetBundleName;
     }
 
+    /**
+     * get the target priority for HapVerifyInfo.
+     */
     public int getTargetPriority() {
         return targetPriority;
     }
 
+    /**
+     * set the target priority for HapVerifyInfo.
+     */
     public void setTargetPriority(int priority) {
         this.targetPriority = priority;
     }
 
+    /**
+     * get the target module name for HapVerifyInfo.
+     */
     public String getTargetModuleName() {
         return targetModuleName;
     }
 
+    /**
+     * set the target module name for HapVerifyInfo.
+     */
     public void setTargetModuleName(String targetModuleName) {
         this.targetModuleName = targetModuleName;
     }
 
+    /**
+     * get the target module priority for HapVerifyInfo.
+     */
     public int getTargetModulePriority() {
         return targetModulePriority;
     }
 
+    /**
+     * set the target module priority for HapVerifyInfo.
+     */
     public void setTargetModulePriority(int priority) {
         this.targetModulePriority = priority;
     }
 
+    /**
+     * get the file length for HapVerifyInfo.
+     */
     public long getFileLength() {
         return fileLength;
     }
 
+    /**
+     * set the file length for HapVerifyInfo.
+     */
     public void setFileLength(long fileLength) {
         this.fileLength = fileLength;
     }
 
+    /**
+     * set the entry size limit for HapVerifyInfo.
+     */
     public void setEntrySizeLimit(int limit) {
         this.entrySizeLimit = limit;
     }
 
+    /**
+     * get the entry size limit for HapVerifyInfo.
+     */
     public int getEntrySizeLimit() {
         return entrySizeLimit;
     }
 
+    /**
+     * set the not entry size limit for HapVerifyInfo.
+     */
     public void setNotEntrySizeLimit(int notEntrySizeLimit) {
         this.notEntrySizeLimit = notEntrySizeLimit;
     }
 
+    /**
+     * get the not entry size limit for HapVerifyInfo.
+     */
     public int getNotEntrySizeLimit() {
         return notEntrySizeLimit;
     }
 
+    /**
+     * set the sum size limit for HapVerifyInfo.
+     */
     public void setSumSizeLimit(int sumSizeLimit) {
         this.sumSizeLimit = sumSizeLimit;
     }
 
+    /**
+     * get the sum size limit for HapVerifyInfo.
+     */
     public int getSumSizeLimit() {
         return sumSizeLimit;
     }
 
+    /**
+     * get whether to keep data on uninstall for HapVerifyInfo.
+     */
     public boolean isKeepDataOnUninstall() {
         return keepDataOnUninstall;
     }
 
+    /**
+     * set whether to keep data on uninstall for HapVerifyInfo.
+     */
     public void setKeepDataOnUninstall(boolean keepDataOnUninstall) {
         this.keepDataOnUninstall = keepDataOnUninstall;
     }
 
+    /**
+     * get whether the package is debug for HapVerifyInfo.
+     */
     public boolean isDebug() {
         return debug;
     }
 
+    /**
+     * set whether the package is debug for HapVerifyInfo.
+     */
     public void setDebug(boolean debug) {
         this.debug = debug;
     }
 
+    /**
+     * get the compile sdk version for HapVerifyInfo.
+     */
     public String getCompileSdkVersion() {
         return compileSdkVersion;
     }
 
+    /**
+     * set the compile sdk version for HapVerifyInfo.
+     */
     public void setCompileSdkVersion(String compileSdkVersion) {
         this.compileSdkVersion = compileSdkVersion;
     }
 
+    /**
+     * get the compile sdk type for HapVerifyInfo.
+     */
     public String getCompileSdkType() {
         return compileSdkType;
     }
 
+    /**
+     * set the compile sdk type for HapVerifyInfo.
+     */
     public void setCompileSdkType(String compileSdkType) {
         this.compileSdkType = compileSdkType;
     }
 
+    /**
+     * get the proxy data uris for HapVerifyInfo.
+     */
     public List<String> getProxyDataUris() {
         return proxyDataUris;
     }
 
+    /**
+     * set the proxy data uris for HapVerifyInfo.
+     */
     public void setProxyDataUris(List<String> proxyDataUris) {
         this.proxyDataUris = proxyDataUris;
     }
@@ -624,26 +723,44 @@ class HapVerifyInfo {
         this.continueTypeMap = continueTypeMap;
     }
 
+    /**
+     * get the multi app mode for HapVerifyInfo.
+     */
     public MultiAppMode getMultiAppMode() {
         return multiAppMode;
     }
 
+    /**
+     * set the multi app mode for HapVerifyInfo.
+     */
     public void setMultiAppMode(MultiAppMode multiAppMode) {
         this.multiAppMode = multiAppMode;
     }
 
+    /**
+     * get whether auto control intent is allowed for HapVerifyInfo.
+     */
     public boolean isAllowAutoControlIntent() {
         return allowAutoControlIntent;
     }
 
+    /**
+     * set whether auto control intent is allowed for HapVerifyInfo.
+     */
     public void setAllowAutoControlIntent(boolean allowAutoControlIntent) {
         this.allowAutoControlIntent = allowAutoControlIntent;
     }
 
+    /**
+     * get the file type for HapVerifyInfo.
+     */
     public String getFileType() {
         return fileType;
     }
 
+    /**
+     * set the file type for HapVerifyInfo.
+     */
     public void setFileType(String fileType) {
         this.fileType = fileType;
     }

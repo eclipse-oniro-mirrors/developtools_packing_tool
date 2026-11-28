@@ -25,10 +25,16 @@ import java.util.List;
 public class ModuleAtomicService {
     private List<PreloadItem> preloadItems = new ArrayList<>();
 
+    /**
+     * get the preload items of atomic service.
+     */
     public List<PreloadItem> getPreloadItems() {
         return preloadItems;
     }
 
+    /**
+     * set the preload items of atomic service.
+     */
     public void setPreloadItems(List<PreloadItem> preloadItems) {
         this.preloadItems = preloadItems;
     }

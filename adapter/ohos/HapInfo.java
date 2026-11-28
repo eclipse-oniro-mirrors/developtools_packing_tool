@@ -209,10 +209,16 @@ public class HapInfo {
      */
     private Map<String, List<String>> anyOfDeviceFeatures = new HashMap<>();
 
+    /**
+     * set the descriptions of HapInfo.
+     */
     public void setDescriptions(HashMap<String, String> descriptions) {
         this.descriptions = descriptions;
     }
 
+    /**
+     * get the descriptions of HapInfo.
+     */
     public HashMap<String, String> getDescriptions() {
         return descriptions;
     }

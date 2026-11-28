@@ -35,6 +35,11 @@ public class AlternateIcon {
      */
     public String icon = "";
 
+    /**
+     * alternate icon info string.
+     *
+     * @return a string representation of the alternate icon
+     */
     @Override
     public String toString() {
         return "AlternateIcon{"
@@ -44,6 +49,11 @@ public class AlternateIcon {
                 + '}';
     }
 
+    /**
+     * compute the hash code of the alternate icon.
+     *
+     * @return the hash code of the alternate icon
+     */
     @Override
     public int hashCode() {
         int result = Long.hashCode(iconId);
@@ -52,6 +62,12 @@ public class AlternateIcon {
         return result;
     }
 
+    /**
+     * compare this alternate icon with the specified object.
+     *
+     * @param obj the object to be compared
+     * @return true if the given object is an alternate icon with the same fields
+     */
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {

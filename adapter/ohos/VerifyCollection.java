@@ -123,66 +123,114 @@ class VerifyCollection {
 
     private boolean allowAutoControlIntent = false;
 
+    /**
+     * get the main ability of verify collection.
+     */
     public String getMain() {
         return main;
     }
 
+    /**
+     * set the main ability of verify collection.
+     */
     public void setMain(String main) {
         this.main = main;
     }
 
+    /**
+     * get whether the module is split.
+     */
     public boolean isSplit() {
         return split;
     }
 
+    /**
+     * set whether the module is split.
+     */
     public void setSplit(boolean split) {
         this.split = split;
     }
 
+    /**
+     * get whether the module is a shared app.
+     */
     public boolean isSharedApp() {
         return sharedApp;
     }
 
+    /**
+     * set whether the module is a shared app.
+     */
     public void setSharedApp(boolean sharedApp) {
         this.sharedApp = sharedApp;
     }
 
+    /**
+     * set the bundle type of verify collection.
+     */
     public void setBundleType(String bundleType) {
         this.bundleType = bundleType;
     }
 
+    /**
+     * get the bundle type of verify collection.
+     */
     public String getBundleType() {
         return bundleType;
     }
 
+    /**
+     * get the module name of verify collection.
+     */
     public String getModuleName() {
         return moduleName;
     }
 
+    /**
+     * set the module name of verify collection.
+     */
     public void setModuleName(String moduleName) {
         this.moduleName = moduleName;
     }
 
+    /**
+     * get the module type of verify collection.
+     */
     public String getModuleType() {
         return moduleType;
     }
 
+    /**
+     * set the module type of verify collection.
+     */
     public void setModuleType(String moduleType) {
         this.moduleType = moduleType;
     }
 
+    /**
+     * get the multi app mode of verify collection.
+     */
     public MultiAppMode getMultiAppMode() {
         return multiAppMode;
     }
 
+    /**
+     * set the multi app mode of verify collection.
+     */
     public void setMultiAppMode(MultiAppMode multiAppMode) {
         this.multiAppMode = multiAppMode;
     }
 
+    /**
+     * get whether to keep data on uninstall.
+     */
     public boolean isKeepDataOnUninstall() {
         return keepDataOnUninstall;
     }
 
+    /**
+     * set whether to keep data on uninstall.
+     */
     public void setKeepDataOnUninstall(boolean keepDataOnUninstall) {
         this.keepDataOnUninstall = keepDataOnUninstall;
     }

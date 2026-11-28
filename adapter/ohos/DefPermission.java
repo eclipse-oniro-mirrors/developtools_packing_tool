@@ -58,18 +58,30 @@ public class DefPermission {
 
     private HashMap<String, String> descriptions = new HashMap<>();
 
+    /**
+     * get the descriptions of DefPermission.
+     */
     public HashMap<String, String> getDescriptions() {
         return descriptions;
     }
 
+    /**
+     * set the descriptions of DefPermission.
+     */
     public void setDescriptions(HashMap<String, String> descriptions) {
         this.descriptions = descriptions;
     }
 
+    /**
+     * get the labels of DefPermission.
+     */
     public HashMap<String, String> getLabels() {
         return labels;
     }
 
+    /**
+     * set the labels of DefPermission.
+     */
     public void setLabels(HashMap<String, String> labels) {
         this.labels = labels;
     }

@@ -170,10 +170,20 @@ class ModuleAppInfo {
      */
     private List<AlternateIcon> alternateIcons = new ArrayList<>();
 
+    /**
+     * Set the descriptions of the app.
+     *
+     * @param descriptions the descriptions of the app
+     */
     public void setDescriptions(HashMap<String, String> descriptions) {
         this.descriptions = descriptions;
     }
 
+    /**
+     * Set the labels of the app.
+     *
+     * @param labels the labels of the app
+     */
     public void setLabels(HashMap<String, String> labels) {
         this.labels = labels;
     }
@@ -187,10 +197,20 @@ class ModuleAppInfo {
         bundleType = type;
     }
 
+    /**
+     * Get the descriptions of the app.
+     *
+     * @return the descriptions of the app
+     */
     public HashMap<String, String> getDescriptions() {
         return descriptions;
     }
 
+    /**
+     * Get the labels of the app.
+     *
+     * @return the labels of the app
+     */
     public HashMap<String, String> getLabels() {
         return labels;
     }
@@ -204,58 +224,128 @@ class ModuleAppInfo {
         return bundleType;
     }
 
+    /**
+     * Get the compile sdk version of the app.
+     *
+     * @return the compile sdk version of the app
+     */
     public String getCompileSdkVersion() {
         return compileSdkVersion;
     }
 
+    /**
+     * Set the compile sdk version of the app.
+     *
+     * @param compileSdkVersion the compile sdk version of the app
+     */
     public void setCompileSdkVersion(String compileSdkVersion) {
         this.compileSdkVersion = compileSdkVersion;
     }
 
+    /**
+     * Get the compile sdk type of the app.
+     *
+     * @return the compile sdk type of the app
+     */
     public String getCompileSdkType() {
         return compileSdkType;
     }
 
+    /**
+     * Set the compile sdk type of the app.
+     *
+     * @param compileSdkType the compile sdk type of the app
+     */
     public void setCompileSdkType(String compileSdkType) {
         this.compileSdkType = compileSdkType;
     }
 
+    /**
+     * Get the target bundle name of the app.
+     *
+     * @return the target bundle name of the app
+     */
     public String getTargetBundleName() {
         return targetBundleName;
     }
 
+    /**
+     * Set the target bundle name of the app.
+     *
+     * @param targetBundleName the target bundle name of the app
+     */
     public void setTargetBundleName(String targetBundleName) {
         this.targetBundleName = targetBundleName;
     }
 
+    /**
+     * Get the target priority of the app.
+     *
+     * @return the target priority of the app
+     */
     public int getTargetPriority() {
         return targetPriority;
     }
 
+    /**
+     * Set the target priority of the app.
+     *
+     * @param targetPriority the target priority of the app
+     */
     public void setTargetPriority(int targetPriority) {
         this.targetPriority = targetPriority;
     }
 
+    /**
+     * Get the icon id of the app.
+     *
+     * @return the icon id of the app
+     */
     public int getIconId() {
         return iconId;
     }
 
+    /**
+     * Set the icon id of the app.
+     *
+     * @param iconId the icon id of the app
+     */
     public void setIconId(int iconId) {
         this.iconId = iconId;
     }
 
+    /**
+     * Get the label id of the app.
+     *
+     * @return the label id of the app
+     */
     public int getLabelId() {
         return labelId;
     }
 
+    /**
+     * Set the label id of the app.
+     *
+     * @param labelId the label id of the app
+     */
     public void setLabelId(int labelId) {
         this.labelId = labelId;
     }
 
+    /**
+     * Get the alternate icons of the app.
+     *
+     * @return the alternate icons of the app
+     */
     public List<AlternateIcon> getAlternateIcons() {
         return alternateIcons;
     }
 
+    /**
+     * Set the alternate icons of the app.
+     *
+     * @param alternateIcons the alternate icons of the app
+     */
     public void setAlternateIcons(List<AlternateIcon> alternateIcons) {
         this.alternateIcons = alternateIcons;
     }
