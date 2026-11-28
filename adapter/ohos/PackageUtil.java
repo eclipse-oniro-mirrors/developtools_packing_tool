@@ -1364,7 +1364,8 @@ public class PackageUtil {
                 return false;
             }
             if (packages.contains(packageName)) {
-                LOG.error(PackingToolErrMsg.PACK_INFO_INVALID.toString("Package name is redundant in " + hapPath + "."));
+                LOG.error(PackingToolErrMsg.PACK_INFO_INVALID.toString("Package name is redundant in " +
+                    hapPath + "."));
                 return false;
             }
             packages.add(packageName);

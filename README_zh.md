@@ -78,25 +78,27 @@ java -jar app_packing_tool.jar --mode res --entrycard-path [option] --pack-info-
 #### 1.3.1 示例
 
 ```
-java -jar app_packing_tool.jar --mode app [--hap-path <path>] [--hsp-path <path>] --out-path <path> [--signature-path <path>] [--certificate-path <path>] [--pack-info-path <path>] --force <option> [--encrypt-path <path>] [--pac-json-path <path>] [--replace-pack-info <option>]
+java -jar app_packing_tool.jar --mode app [--hap-path <path>] [--hsp-path <path>] --pack-info-path <path> --out-path <path> [--signature-path <path>] [--certificate-path <path>] [--pack-res-path <path>] [--force <true/false>] [--encrypt-path <path>] [--atomic-service-entry-size-limit <size>] [--atomic-service-non-entry-size-limit <size>] [--replace-pack-info <option>]
 ```
 
 #### 1.3.2 参数含义及规范
 
-| 指令                 | 是否必选项 | 选项          | 描述                                                           |
-|--------------------|-------|-------------|--------------------------------------------------------------|
-| --mode             | 是     | app         | 多个hap需满足hap的合法性校验。                                           |
-| --hap-path         | 否     | NA          | 1.hap包文件路径，文件名必须以.hap为后缀。如果时多个hap包需要用“，”分隔。2.hap包文件路径也可以是目录。 |
-| --hsp-path         | 否     | NA          | 1.hsp包文件路径，文件名必须以.hsp为后缀。如果时多个hsp包需要用“，”分隔。2.hsp包文件路径也可以是目录。 |
-| --pack-info-path   | 是     | NA          | 文件名必须为pack.info。                                             |
-| --out-path         | 是     | NA          | 目标文件路径，文件名必须以.app为后缀。                                        |
-| --signature-path   | 否     | NA          | 签名路径。                                                        |
-| --certificate-path | 否     | NA          | 证书路径。                                                        |
-| --pack-res-path    | 否     | NA          | 打包res的目标文件路径，文件名需要为pack.res。                                 |
-| --force            | 否     | true或者false | 默认值为false，如果为true，表示当目标文件存在时，强制删除。                           |
-| --encrypt-path     | 否     | NA          | 文件名必须为encrypt.json。                                          |
-| --pac-json-path    | 否     | NA          | 文件名必须为pac.json。                                              |
-| --replace-pack-info    | 否     | true或者false          | 打包app时，是否替换hap、hsp文件中的pack.info文件。默认值为true。 |
+| 指令                                    | 是否必选项 | 选项          | 描述                                                                                                                         |
+|---------------------------------------|-------|-------------|----------------------------------------------------------------------------------------------------------------------------|
+| --mode                                | 是     | app         | 多个hap需满足hap的合法性校验。                                                                                                         |
+| --hap-path                            | 否     | NA          | 1.hap包文件路径，文件名必须以.hap为后缀。如果时多个hap包需要用“，”分隔。2.hap包文件路径也可以是目录。                                                               |
+| --hsp-path                            | 否     | NA          | 1.hsp包文件路径，文件名必须以.hsp为后缀。如果时多个hsp包需要用“，”分隔。2.hsp包文件路径也可以是目录。                                                               |
+| --pack-info-path                      | 是     | NA          | 文件名必须为pack.info。                                                                                                           |
+| --out-path                            | 是     | NA          | 目标文件路径，文件名必须以.app为后缀。                                                                                                      |
+| --signature-path                      | 否     | NA          | 签名路径。                                                                                                                      |
+| --certificate-path                    | 否     | NA          | 证书路径。                                                                                                                      |
+| --pack-res-path                       | 否     | NA          | 打包res的目标文件路径，文件名需要为pack.res。                                                                                               |
+| --force                               | 否     | true或者false | 默认值为false，如果为true，表示当目标文件存在时，强制删除。                                                                                         |
+| --encrypt-path                        | 否     | NA          | 文件名必须为encrypt.json。                                                                                                        |
+| --pac-json-path                       | 否     | NA          | 文件名必须为pac.json。                                                                                                            |
+| --atomic-service-entry-size-limit     | 否     | NA          | 设置元服务entry包大小（包含其依赖包的大小）限制，仅stage模型应用且bundleType为atomicService时生效。取值范围为[0,4194304]的整数，取值为0表示不限制大小，单位KB。不设置该参数时默认值为2048KB。  |
+| --atomic-service-non-entry-size-limit | 否     | NA          | 设置元服务非entry包大小（包含其依赖包的大小）限制，仅stage模型应用且bundleType为atomicService时生效。取值范围为[0,4194304]的整数，取值为0表示不限制大小，单位KB。不设置该参数时默认值为2048KB。 |
+| --replace-pack-info                   | 否     | true或者false | 打包app时，是否替换hap、hsp文件中的pack.info文件。默认值为true。                                                                                |
 
 #### 1.3.3 打包app时hap的合法性校验
 
@@ -114,7 +116,7 @@ java -jar app_packing_tool.jar --mode app [--hap-path <path>] [--hsp-path <path>
 #### 1.4.1 示例
 
 ```
-java -jar app_packing_tool.jar --mode multiApp --hap-list <1.hap,2.hap> --hsp-list <1.hsp,2.hsp> --app-list <1.app,2.app> --out-path <final.app> [--encrypt-path <path>] [--pac-json-path <path>]
+java -jar app_packing_tool.jar --mode multiApp [--hap-list <1.hap,2.hap>] [--hsp-list <1.hsp,2.hsp>] [--app-list <1.app,2.app>] --out-path <final.app> [--force <true/false>] [--encrypt-path <path>] [--pac-json-path <path>] [--atomic-service-entry-size-limit <size>] [--atomic-service-non-entry-size-limit <size>]
 ```
 
 #### 1.4.2 参数含义及规范
@@ -129,6 +131,8 @@ java -jar app_packing_tool.jar --mode multiApp --hap-list <1.hap,2.hap> --hsp-li
 | --force        | 否     | 默认值为false       | 默认值为false，如果为true，表示当目标文件存在时，强制删除。                                                                |
 | --encrypt-path | 否     | encrypt.json的路径 | 文件名必须为encrypt.json。                                                                |
 | --pac-json-path    | 否     | NA          | 文件名必须为pac.json。最终app产物中pac.json文件只来源于该参数，不配置的话，最终app产物不包含该文件。--app-list参数指定的app包中的pac.json不会打包进最终app。  |
+| --atomic-service-entry-size-limit     | 否     | NA          | 设置元服务entry包大小（包含其依赖包的大小）限制，仅stage模型应用且bundleType为atomicService时生效。取值范围为[0,4194304]的整数，取值为0表示不限制大小，单位KB。不设置该参数时默认值为2048KB。  |
+| --atomic-service-non-entry-size-limit | 否     | NA          | 设置元服务非entry包大小（包含其依赖包的大小）限制，仅stage模型应用且bundleType为atomicService时生效。取值范围为[0,4194304]的整数，取值为0表示不限制大小，单位KB。不设置该参数时默认值为2048KB。 |
 
 #### 1.4.3 多工程打包hap合法性校验
 
@@ -248,7 +252,7 @@ java -jar path\app_packing_tool.jar --mode packageNormalize --hsp-list path\1.hs
 #### 1.10.1 示例
 
 ```
-java -jar app_packing_tool.jar --mode fastApp --hap-path <option> --hsp-path <option> --out-path [option] --signature-path [option] --certificate-path [option] --pack-info-path [option] --force [option] [--pac-json-path <path>]
+java -jar app_packing_tool.jar --mode fastApp [--hap-path <path>] [--hsp-path <path>] --pack-info-path [path] --out-path [path] [--signature-path <path>] [--certificate-path <path>] [--pack-res-path <path>] [--force <true/false>] [--encrypt-path <path>] [--pac-json-path <path>] [--atomic-service-entry-size-limit <size>] [--atomic-service-non-entry-size-limit <size>]
 ```
 
 #### 1.10.2 参数含义及规范
@@ -266,6 +270,8 @@ java -jar app_packing_tool.jar --mode fastApp --hap-path <option> --hsp-path <op
 | --force            | 否     | true或者false | 默认值为false，如果为true，表示当目标文件存在时，强制删除。                                                                    |
 | --encrypt-path     | 否     | NA          | 文件名必须为encrypt.json。                                                                    |
 | --pac-json-path    | 否     | NA          | 文件名必须为pac.json。                                              |
+| --atomic-service-entry-size-limit     | 否     | NA          | 设置元服务entry包大小（包含其依赖包的大小）限制，仅stage模型应用且bundleType为atomicService时生效。取值范围为[0,4194304]的整数，取值为0表示不限制大小，单位KB。不设置该参数时默认值为2048KB。  |
+| --atomic-service-non-entry-size-limit | 否     | NA          | 设置元服务非entry包大小（包含其依赖包的大小）限制，仅stage模型应用且bundleType为atomicService时生效。取值范围为[0,4194304]的整数，取值为0表示不限制大小，单位KB。不设置该参数时默认值为2048KB。 |
 
 #### 1.10.3 打包app时hap、hsp的合法性校验
 

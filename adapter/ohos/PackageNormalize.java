@@ -247,11 +247,11 @@ public class PackageNormalize {
     public static CRC32 getCrcFromFile(File file) throws BundleException {
         CRC32 crc = new CRC32();
         try (FileInputStream fileInputStream = new FileInputStream(file)) {
-            byte[] buffer = new byte[BUFFER_SIZE];
-            int count = fileInputStream.read(buffer);
+            byte[] buf = new byte[BUFFER_SIZE];
+            int count = fileInputStream.read(buf);
             while (count > 0) {
-                crc.update(buffer, 0, count);
-                count = fileInputStream.read(buffer);
+                crc.update(buf, 0, count);
+                count = fileInputStream.read(buf);
             }
         } catch (FileNotFoundException ignored) {
             LOG.error(PackingToolErrMsg.FILE_NOT_FOUND.toString(

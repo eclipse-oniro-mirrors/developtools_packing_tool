@@ -18,6 +18,8 @@ package ohos;
 /**
  * AlternateIcon info.
  *
+ * @since 2026/4/10
+ *
  */
 public class AlternateIcon {
     /**
